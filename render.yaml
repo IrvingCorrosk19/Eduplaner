@@ -8,12 +8,10 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: school-manager-db
-          property: connectionString
+        value: "Host=dpg-d0npp3ndiees73cut1sg-a;Port=5432;Database=schoolmanager_1226a;Username=schoolmanager_1226a;Password=1ILDh9sW1tEGcLpPfhbUL6RzuZCdHGYc"
 
 databases:
   - name: school-manager-db
-    databaseName: SchoolManagement
-    user: postgres
-    plan: free 
+    databaseName: schoolmanager_1226a
+    user: schoolmanager_1226a
+    plan: free
