@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: school-manager
+    name: school-manager-new
     env: dotnet
     buildCommand: dotnet publish -c Release
     startCommand: dotnet SchoolManager.dll
@@ -8,4 +8,10 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        value: "Host=dpg-d0nqgl7diees73cvjfjg-a.oregon-postgres.render.com;Port=5432;Database=schoolmanager_1226a_hf8s;Username=schoolmanager_1226ab;Password=iupnt5ySTMLaGkb6I7j8xWtIHDdfs9ym;SSL Mode=Require;Trust Server Certificate=true;"
+        value: "Host=dpg-d0nr903e5dus73af28ug-a.oregon-postgres.render.com;Port=5432;Database=schoolmanager_2626;Username=schoolmanager_2626abcd;Password=ajR57BH4mIzDT043xcMUYMbgaM2QLurx;SSL Mode=Require;Trust Server Certificate=true;"
+
+databases:
+  - name: school-manager-db-new
+    databaseName: schoolmanager_2626
+    user: schoolmanager_2626abcd
+    plan: free
