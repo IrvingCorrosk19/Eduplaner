@@ -1,0 +1,650 @@
+﻿@model IEnumerable<SchoolManager.Models.User>
+@{
+    ViewData["Title"] = "Gestión de Usuarios";
+    Layout = "_AdminLayout";
+}
+
+<style>
+    .portal-header {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        padding: 2rem 2rem 1.5rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .portal-header h3 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .portal-header small {
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+    .card {
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08);
+        border: none;
+        margin-bottom: 1.5rem;
+    }
+    .card-header {
+        background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+        color: white;
+        border-radius: 1rem 1rem 0 0 !important;
+        font-weight: 600;
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .card-header.bg-light {
+        background: #f1f5f9 !important;
+        color: #1e293b !important;
+    }
+    .table-container {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+    .table-responsive {
+        border-radius: 0.75rem;
+        background: white;
+        margin-top: 1rem;
+        overflow-x: auto;
+        min-height: 400px;
+    }
+    .table {
+        margin-bottom: 0;
+        width: 100%;
+        font-size: 0.95rem;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    .table thead th {
+        background: #f1f5f9;
+        color: #475569;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+        border-bottom: 2px solid #e2e8f0;
+        white-space: nowrap;
+    }
+    .table tbody tr {
+        transition: all 0.2s;
+    }
+    .table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+    .table tbody tr:hover {
+        background-color: #f1f5f9;
+    }
+    .table tbody td {
+        padding: 0.75rem 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #e2e8f0;
+        color: #334155;
+        font-size: 0.875rem;
+    }
+    .btn-primary, .btn-warning, .btn-info, .btn-danger {
+        border-radius: 0.5rem;
+        font-weight: 500;
+    }
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+    }
+    .badge.bg-success {
+        background-color: #10b981 !important;
+    }
+    .badge.bg-danger {
+        background-color: #ef4444 !important;
+    }
+    .search-bar {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+    .search-bar input[type="text"] {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        border-radius: 0.75rem;
+        border: 1px solid #e2e8f0;
+        background-color: white;
+        font-size: 0.95rem;
+        color: #1e293b;
+        transition: all 0.2s;
+    }
+    .search-bar input[type="text"]:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .search-bar::before {
+        content: "";
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 1rem;
+        height: 1rem;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        opacity: 0.5;
+    }
+    .dataTables_wrapper {
+        display: flex;
+        flex-direction: column;
+    }
+    .dataTables_wrapper .dataTables_paginate {
+        padding: 1.5rem 0 0.5rem 0;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        gap: 0.25rem;
+        width: 100%;
+        border-top: 1px solid #e2e8f0;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0.5rem 0.75rem;
+        margin: 0;
+        min-width: 2rem;
+        text-align: center;
+        border: none;
+        background: transparent !important;
+        color: #64748b !important;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: #f1f5f9 !important;
+        color: #2563eb !important;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #2563eb !important;
+        color: white !important;
+        border-radius: 0.25rem;
+    }
+    .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    .dataTables_wrapper .dataTables_paginate .ellipsis {
+        padding: 0.5rem 0.75rem;
+        color: #64748b;
+    }
+    /* Ocultar elementos innecesarios */
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info {
+        display: none !important;
+    }
+    @@media (max-width: 768px) {
+        .table thead th,
+        .table tbody td {
+            min-width: 120px; /* Ancho mínimo para celdas */
+        }
+        .table thead th:first-child,
+        .table tbody td:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 1;
+        }
+        .table thead th:last-child,
+        .table tbody td:last-child {
+            position: sticky;
+            right: 0;
+            background: white;
+            z-index: 1;
+        }
+        .action-buttons {
+            white-space: nowrap;
+        }
+    }
+    .action-buttons {
+        display: flex;
+        gap: 0.3rem;
+        justify-content: center;
+    }
+    .btn-action {
+        padding: 0.3rem 0.7rem;
+        border-radius: 0.4rem;
+        font-weight: 500;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.2s;
+        color: white;
+    }
+    .btn-action:hover {
+        transform: translateY(-1px);
+        color: white;
+    }
+    .btn-action i {
+        font-size: 0.85rem;
+    }
+    .btn-edit {
+        background-color: #2563eb;
+        border: none;
+    }
+    .btn-edit:hover {
+        background-color: #1e40af;
+    }
+    .btn-delete {
+        background-color: #ef4444;
+        border: none;
+    }
+    .btn-delete:hover {
+        background-color: #dc2626;
+    }
+    .role-text {
+        font-weight: 600;
+        font-size: 0.875rem;
+        padding: 0.25rem 0;
+    }
+    .role-admin {
+        color: #7c3aed;
+    }
+    .role-teacher {
+        color: #0284c7;
+    }
+    .role-student {
+        color: #059669;
+    }
+    .role-parent {
+        color: #d97706;
+    }
+    .role-director {
+        color: #7c3aed;
+    }
+</style>
+
+<div class="container-fluid">
+    <!-- ENCABEZADO AZUL -->
+    <div class="portal-header d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-people-fill fs-2 text-white"></i>
+            <h3 class="mb-0">Gestión de Usuarios</h3>
+        </div>
+        <div class="text-end">
+            <small>@DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy")</small>
+        </div>
+    </div>
+
+    <div class="card card-primary card-outline">
+        <div class="card-header">
+            <i class="fas fa-user-plus me-2"></i> Crear / Editar Usuario
+        </div>
+        <div class="card-body">
+            <form id="userForm" novalidate>
+                <input type="hidden" name="UserId" id="UserId" />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" name="Name" placeholder="Nombre" required>
+                            <div class="invalid-feedback">Nombre obligatorio.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Apellidos</label>
+                            <input type="text" class="form-control" name="LastName" placeholder="Apellidos">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Correo Electrónico</label>
+                            <input type="email" class="form-control" name="Email" placeholder="correo@ejemplo.com" required>
+                            <div class="invalid-feedback">Correo obligatorio.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Documento de Identidad</label>
+                            <input type="text" class="form-control" name="DocumentId" placeholder="Ej. 8-123-4567">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" class="form-control" name="PasswordHash" placeholder="********">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Fecha de Nacimiento</label>
+                            <input type="date" class="form-control" name="DateOfBirth" required>
+                            <div class="invalid-feedback">La fecha de nacimiento es obligatoria.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select class="form-control" name="Role" id="roleSelect">
+                                @foreach (var role in ViewBag.Roles)
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Estado</label>
+                            <select class="form-control" name="Status">
+                                <option value="active">Activo</option>
+                                <option value="inactive">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="btnCreateUser" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Crear Usuario
+                </button>
+                <button type="button" id="btnUpdateUser" class="btn btn-warning" disabled>
+                    <i class="fas fa-save"></i> Actualizar Usuario
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="table-container">
+            <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Buscar usuario por nombre, correo o documento...">
+            </div>
+            <div class="table-responsive">
+            <table class="table" id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Apellidos</th>
+                            <th>Correo</th>
+                            <th>Fecha de nacimiento</th>
+                            <th>Documento</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                            <td>@user.Name</td>
+                            <td>@user.LastName</td>
+                            <td>@user.Email</td>
+                            <td>@(user.DateOfBirth?.ToString("dd/MM/yyyy"))</td>
+                            <td>@user.DocumentId</td>
+                            <td>
+                                <span class="role-text @GetRoleClass(user.Role?.ToLower())">
+                                    @user.Role
+                                </span>
+                            </td>
+                            <td>
+                                    @if (user.Status?.ToLowerInvariant() == "active")
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    }
+                                </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button type="button" class="btn btn-action btn-edit btn-edit-user" data-id="@user.Id" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                        <span>Editar</span>
+                                    </button>
+                                    <button type="button" class="btn btn-action btn-delete btn-delete-user" data-id="@user.Id" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                        <span>Eliminar</span>
+                                    </button>
+                                </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.dataTables.min.css" />
+    <script src="https://cdn.datatables.net/responsive/2.4.1/js/dataTables.responsive.min.js"></script>
+    <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
+    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Inicializar DataTables en la tabla de usuarios con Responsive
+            var usersTable = $('#users-table').DataTable({
+                "pageLength": 25,
+                "dom": "<'row'<'col-sm-12'tr>><'row'<'col-sm-12'p>>",
+                "language": {
+                    "paginate": {
+                        "first": "«",
+                        "last": "»",
+                        "next": "›",
+                        "previous": "‹"
+                    },
+                    "zeroRecords": "No se encontraron resultados",
+                    "infoEmpty": "",
+                    "infoFiltered": "",
+                    "info": ""
+                },
+                "ordering": true,
+                "order": [[0, 'asc']],
+                "columnDefs": [
+                    { "orderable": true, "targets": [0,1,2,3,4,5,6] },
+                    { "orderable": false, "targets": 7 }
+                ],
+                "responsive": {
+                    details: {
+                        display: $.fn.dataTable.Responsive.display.childRow,
+                        type: 'column',
+                        renderer: function (api, rowIdx, columns) {
+                            var data = $.map(columns, function (col, i) {
+                                return col.hidden ?
+                                    '<tr data-dt-row="' + col.rowIndex + '" data-dt-column="' + col.columnIndex + '">' +
+                                    '<td>' + col.title + ':' + '</td> ' +
+                                    '<td>' + col.data + '</td>' +
+                                    '</tr>' :
+                                    '';
+                            }).join('');
+
+                            return data ?
+                                $('<table/>').append(data) :
+                                false;
+                        }
+                    }
+                }
+            });
+
+            // Conectar el input de búsqueda personalizado con DataTables
+            $('#searchInput').on('keyup', function () {
+                usersTable.search(this.value).draw();
+            });
+
+            // Usar delegación de eventos para los botones de editar y eliminar
+            $(document).on('click', '.btn-edit-user', function() {
+                const userId = $(this).data('id');
+
+                $.get(`/User/GetUserJson?id=${userId}`, function (user) {
+                    $('#UserId').val(user.id);
+                    $('[name="Name"]').val(user.name);
+                    $('[name="LastName"]').val(user.lastName);
+                    $('[name="Email"]').val(user.email);
+                    $('[name="DocumentId"]').val(user.documentId);
+                    $('[name="PasswordHash"]').val(user.passwordHash);
+                    $('[name="Role"]').val(user.role);
+                    $('[name="Status"]').val(user.status);
+                    $('[name="DateOfBirth"]').val(user.dateOfBirth ? user.dateOfBirth.split('T')[0] : '');
+
+                    $('#btnUpdateUser').prop('disabled', false);
+                    $('#btnCreateUser').prop('disabled', true);
+                });
+            });
+
+            $(document).on('click', '.btn-delete-user', function() {
+                const userId = $(this).data('id');
+                const userName = $(this).closest('tr').find('td:first').text();
+
+                Swal.fire({
+                    title: `¿Eliminar a "${userName}"?`,
+                    text: "Esta acción no se puede deshacer.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/User/DeleteConfirmed/${userId}`,
+                            type: 'POST'
+                        })
+                        .done(function () {
+                            Swal.fire('Eliminado', 'Usuario eliminado correctamente', 'success')
+                                .then(() => location.reload());
+                        })
+                        .fail(function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                            Swal.fire('Error', message, 'error');
+                        });
+                    }
+                });
+            });
+
+            function showValidationErrors(user) {
+                const form = $('#userForm');
+                form.find('input, select').removeClass('is-invalid');
+                if (!user.Name) form.find('[name="Name"]').addClass('is-invalid');
+                if (!user.Email) form.find('[name="Email"]').addClass('is-invalid');
+            }
+
+            $('#btnCreateUser').on('click', function () {
+                const form = $('#userForm');
+                const user = {
+                    Name: form.find('[name="Name"]').val().trim(),
+                    LastName: form.find('[name="LastName"]').val().trim(),
+                    Email: form.find('[name="Email"]').val().trim(),
+                    DocumentId: form.find('[name="DocumentId"]').val().trim(),
+                    PasswordHash: form.find('[name="PasswordHash"]').val(),
+                    Role: form.find('[name="Role"]').val(),
+                    Status: form.find('[name="Status"]').val(),
+                    DateOfBirth:  form.find('[name="DateOfBirth"]').val()
+                };
+
+                showValidationErrors(user);
+                if (!user.Name || !user.Email) return;
+
+                $.ajax({
+                    url: '/User/CreateJson',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(user)
+                })
+                .done(function (response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: response.message || 'Usuario creado exitosamente'
+                    }).then(() => {
+                        resetUserForm();
+                        location.reload();
+                    });
+                })
+                .fail(function (xhr) {
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: message
+                    });
+                });
+            });
+
+            $('#btnUpdateUser').on('click', function () {
+                const form = $('#userForm');
+                const user = {
+                    Id: $('#UserId').val(),
+                    Name: form.find('[name="Name"]').val().trim(),
+                    LastName: form.find('[name="LastName"]').val().trim(),
+                    Email: form.find('[name="Email"]').val().trim(),
+                    DocumentId: form.find('[name="DocumentId"]').val().trim(),
+                    PasswordHash: form.find('[name="PasswordHash"]').val(),
+                    Role: form.find('[name="Role"]').val(),
+                    Status: form.find('[name="Status"]').val(),
+                    DateOfBirth:  form.find('[name="DateOfBirth"]').val()
+                };
+
+                showValidationErrors(user);
+                if (!user.Name || !user.Email) return;
+
+                $.ajax({
+                    url: '/User/UpdateJson',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(user)
+                })
+                .done(function (response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Actualizado',
+                        text: response.message || 'Usuario actualizado correctamente'
+                    }).then(() => {
+                        resetUserForm();
+                        location.reload();
+                    });
+                })
+                .fail(function (xhr) {
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: message
+                    });
+                });
+            });
+
+            function resetUserForm() {
+                const form = $('#userForm');
+                form[0].reset();
+                $('#UserId').val('');
+                $('#btnUpdateUser').prop('disabled', true);
+                $('#btnCreateUser').prop('disabled', false);
+                form.find('input, select').removeClass('is-invalid');
+            }
+        });
+    </script>
+}
+
+@functions {
+    private string GetRoleClass(string role)
+    {
+        return role?.ToLower() switch
+        {
+            "admin" => "role-admin",
+            "teacher" => "role-teacher",
+            "student" => "role-student",
+            "parent" => "role-parent",
+            "director" => "role-director",
+            _ => ""
+        };
+    }
+}
