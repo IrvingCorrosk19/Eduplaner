@@ -1,5 +1,5 @@
 # Usar la imagen base de .NET SDK para compilar
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copiar el archivo del proyecto y restaurar dependencias
@@ -13,7 +13,7 @@ COPY . .
 RUN dotnet publish -c Release -o /app/publish
 
 # Construir la imagen final
-FROM mcr.microsoft.com/dotnet/aspnet:7.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
