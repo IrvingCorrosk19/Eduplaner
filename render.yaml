@@ -8,10 +8,10 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        value: "Host=dpg-d0npp3ndiees73cut1sg-a;Port=5432;Database=schoolmanager_1226a;Username=schoolmanager_1226a;Password=1ILDh9sW1tEGcLpPfhbUL6RzuZCdHGYc"
+        value: "Host=dpg-d0nqgl7diees73cvjfjg-a.oregon-postgres.render.com;Port=5432;Database=schoolmanager_1226a_hf8s;Username=schoolmanager_1226ab;Password=iupnt5ySTMLaGkb6I7j8xWtIHDdfs9ym;SSL Mode=Require;Trust Server Certificate=true;"
 
 databases:
   - name: school-manager-db
-    databaseName: schoolmanager_1226a
-    user: schoolmanager_1226a
+    databaseName: schoolmanager_1226a_hf8s
+    user: schoolmanager_1226ab
     plan: free
