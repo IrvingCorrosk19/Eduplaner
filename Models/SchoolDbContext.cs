@@ -57,7 +57,7 @@ public partial class SchoolDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseNpgsql("Host=dpg-d0pkk1ruibrs73fu6qfg-a/schoolmanager_1226a_nmph;Database=schoolmanager_1226a_nmph;Username=admin;Password=RzyER2uM8Dqc51zVBhvC35n9QHXmxvUn");
+        => optionsBuilder.UseNpgsql("Host=dpg-d0pkk1ruibrs73fu6qfg-a;Database=schoolmanager_1226a_nmph;Username=admin;Password=RzyER2uM8Dqc51zVBhvC35n9QHXmxvUn");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
