@@ -54,14 +54,14 @@ namespace SchoolManager.Controllers
         public async Task<IActionResult> GuardarNotasTemp([FromBody] List<StudentNotaDto> data)  
         {
             try
-        {
-            if (data == null || !data.Any())
-                return BadRequest("No se recibió información de notas.");
-
-            var registros = new List<StudentActivityScoreCreateDto>();
-
-            foreach (var alumno in data)
             {
+                if (data == null || !data.Any())
+                    return BadRequest("No se recibió información de notas.");
+
+                var registros = new List<StudentActivityScoreCreateDto>();
+
+                foreach (var alumno in data)
+                {
                     if (!Guid.TryParse(alumno.StudentId, out var studentId) ||
                         !Guid.TryParse(alumno.SubjectId, out var subjectId) ||
                         !Guid.TryParse(alumno.GradeLevelId, out var gradeLevelId) ||
@@ -71,31 +71,38 @@ namespace SchoolManager.Controllers
                         return BadRequest("Uno o más IDs tienen un formato inválido.");
                     }
 
-                foreach (var nota in alumno.Notas)
-                {
-                        if (!decimal.TryParse(nota.Nota, out var score))
-                        {
-                            return BadRequest($"La nota '{nota.Nota}' tiene un formato inválido.");
-                        }
-
-                    registros.Add(new StudentActivityScoreCreateDto
+                    foreach (var nota in alumno.Notas)
                     {
+                        decimal? score = null;
+                        if (!string.IsNullOrWhiteSpace(nota.Nota))
+                        {
+                            if (decimal.TryParse(nota.Nota, out var parsedScore))
+                            {
+                                score = parsedScore;
+                            }
+                            else
+                            {
+                                return BadRequest($"La nota '{nota.Nota}' tiene un formato inválido.");
+                            }
+                        }
+                        registros.Add(new StudentActivityScoreCreateDto
+                        {
                             StudentId = studentId,
-                        ActivityName = nota.Actividad,
-                        Type = nota.Tipo,
-                            Score = score,
+                            ActivityName = nota.Actividad,
+                            Type = nota.Tipo,
+                            Score = score, // Puede ser null
                             SubjectId = subjectId,
                             GradeLevelId = gradeLevelId,
                             GroupId = groupId,
                             TeacherId = teacherId,
-                        Trimester = alumno.Trimester
-                    });
+                            Trimester = alumno.Trimester
+                        });
+                    }
                 }
-            }
 
-            await _scoreSvc.SaveBulkFromNotasAsync(registros);
+                await _scoreSvc.SaveBulkFromNotasAsync(registros);
 
-            return Ok(new { message = "Notas procesadas y guardadas correctamente." });
+                return Ok(new { message = "Notas procesadas y guardadas correctamente." });
             }
             catch (Exception ex)
             {

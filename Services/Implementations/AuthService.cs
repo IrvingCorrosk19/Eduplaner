@@ -42,7 +42,7 @@ namespace SchoolManager.Services.Implementations
             }
 
             // Actualizar último login
-            user.LastLogin = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+            user.LastLogin = DateTime.UtcNow;
             await _userService.UpdateAsync(user);
 
             var claims = new List<Claim>
@@ -87,7 +87,7 @@ namespace SchoolManager.Services.Implementations
             if (userIdClaim == null)
                 return null;
 
-            return await _userService.GetByIdAsync(Guid.Parse(userIdClaim.Value));
+            return await _userService.GetByIdWithRelationsAsync(Guid.Parse(userIdClaim.Value));
         }
     }
 } 

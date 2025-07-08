@@ -11,7 +11,7 @@ public partial class StudentActivityScore
 
     public Guid ActivityId { get; set; }
 
-    public decimal Score { get; set; }
+    public decimal? Score { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

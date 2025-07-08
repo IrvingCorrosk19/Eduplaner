@@ -3,6 +3,19 @@
     Layout = "_AdminLayout";
 }
 
+<style>
+    #excelTable tbody tr.error-row {
+        background-color: #ffebee !important;
+        border-left: 4px solid #f44336 !important;
+    }
+    #excelTable tbody tr.error-row td {
+        color: #f44336 !important;
+        font-weight: bold !important;
+        background-color: #ffebee !important;
+        border-color: #f44336 !important;
+    }
+</style>
+
 <h3>Cargar y previsualizar archivo Excel</h3>
 
 <input type="file" id="excelFile" class="form-control mb-3" accept=".xlsx,.xls" />
@@ -25,17 +38,36 @@
     <button id="btnGuardarAsignaciones" class="btn btn-success">Guardar Asignaciones</button>
 </div>
 
+<!-- Loading overlay -->
+<div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: white;">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+        <div class="mt-2">Procesando asignaciones...</div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
+            let filasConErrores = new Set();
+
+            function marcarFilaConError(row) {
+                row.addClass('error-row');
+            }
+
             $('#excelFile').on('change', function (e) {
                 const file = e.target.files[0];
                 if (!file) {
                     Swal.fire("Archivo requerido", "Por favor selecciona un archivo Excel (.xlsx o .xls).", "warning");
                     return;
                 }
+
+                // Limpiar el conjunto de filas con errores al cargar nuevo archivo
+                filasConErrores.clear();
 
                 const reader = new FileReader();
 
@@ -66,15 +98,30 @@
                     tbody.empty();
 
                     let filasInvalidas = 0;
+                    let erroresDetallados = [];
 
                     for (let i = 1; i < json.length; i++) {
                         const row = json[i];
-                        const isValid = row.length >= 6 && row.slice(0, 6).every(cell => cell && cell.toString().trim() !== "");
+                        const rowNumber = i + 1;
+                        const camposFaltantes = [];
+                        
+                        // Validar cada campo
+                        if (!row[0] || row[0].toString().trim() === "") camposFaltantes.push("Docente");
+                        if (!row[1] || row[1].toString().trim() === "") camposFaltantes.push("Especialidad");
+                        if (!row[2] || row[2].toString().trim() === "") camposFaltantes.push("Área");
+                        if (!row[3] || row[3].toString().trim() === "") camposFaltantes.push("Materia");
+                        if (!row[4] || row[4].toString().trim() === "") camposFaltantes.push("Grado");
+                        if (!row[5] || row[5].toString().trim() === "") camposFaltantes.push("Grupo");
 
-                        if (!isValid) filasInvalidas++;
+                        const isValid = camposFaltantes.length === 0;
+                        if (!isValid) {
+                            filasInvalidas++;
+                            filasConErrores.add(rowNumber);
+                            erroresDetallados.push(`Fila ${rowNumber}: Faltan los campos: ${camposFaltantes.join(", ")}`);
+                        }
 
                         const rowHtml = `
-                            <tr class="${isValid ? "" : "table-danger"}">
+                            <tr data-row="${rowNumber}">
                                 <td>${row[0] ?? ""}</td>
                                 <td>${row[1] ?? ""}</td>
                                 <td>${row[2] ?? ""}</td>
@@ -83,53 +130,44 @@
                                 <td>${row[5] ?? ""}</td>
                             </tr>
                         `;
-                        tbody.append(rowHtml);
+                        const $row = $(rowHtml);
+                        tbody.append($row);
+
+                        if (!isValid) {
+                            marcarFilaConError($row);
+                        }
                     }
 
                     if (filasInvalidas > 0) {
-                        Swal.fire("Advertencia", `${filasInvalidas} fila(s) tienen datos incompletos y han sido marcadas en rojo.`, "warning");
+                        Swal.fire({
+                            title: "Advertencia",
+                            html: `
+                                <div class="text-danger mb-2">${filasInvalidas} fila(s) tienen datos incompletos:</div>
+                                <div style="max-height: 200px; overflow-y: auto; text-align: left;">
+                                    ${erroresDetallados.join("<br>")}
+                                </div>
+                            `,
+                            icon: "warning"
+                        });
                     }
 
-                    if ($.fn.DataTable.isDataTable('#excelTable')) {
-                        $('#excelTable').DataTable().destroy();
-                    }
-
-                //     $('#excelTable').DataTable({
-                //         language: {
-                //             search: "Buscar:",
-                //             lengthMenu: "Mostrar _MENU_ registros",
-                //             info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                //             paginate: {
-                //                 first: "Primero",
-                //                 last: "Último",
-                //                 next: "Siguiente",
-                //                 previous: "Anterior"
-                //             },
-                //             zeroRecords: "No se encontraron resultados",
-                //             infoEmpty: "Sin registros disponibles",
-                //             infoFiltered: "(filtrado de _MAX_ registros)"
-                //         }
-                //     });
-                // 
-                //
-                        $('#excelTable').DataTable({
-            paging: false, // 👈 Desactiva la paginación
-            info: false,   // 👈 Oculta el mensaje "Mostrando _START_ a _END_..."
-            language: {
-                search: "Buscar:",
-                lengthMenu: "Mostrar _MENU_ registros",
-                paginate: {
-                    first: "Primero",
-                    last: "Último",
-                    next: "Siguiente",
-                    previous: "Anterior"
-                },
-                zeroRecords: "No se encontraron resultados",
-                infoEmpty: "Sin registros disponibles",
-                infoFiltered: "(filtrado de _MAX_ registros)"
-            }
-        });
-
+                    $('#excelTable').DataTable({
+                        paging: false,
+                        info: false,
+                        language: {
+                            search: "Buscar:",
+                            lengthMenu: "Mostrar _MENU_ registros",
+                            paginate: {
+                                first: "Primero",
+                                last: "Último",
+                                next: "Siguiente",
+                                previous: "Anterior"
+                            },
+                            zeroRecords: "No se encontraron resultados",
+                            infoEmpty: "Sin registros disponibles",
+                            infoFiltered: "(filtrado de _MAX_ registros)"
+                        }
+                    });
                 };
 
                 reader.readAsArrayBuffer(file);
@@ -137,22 +175,52 @@
 
             $('#btnGuardarAsignaciones').on('click', function () {
                 const asignaciones = [];
+                const errores = [];
+                let rowNumber = 1;
 
                 $('#excelTable tbody tr').each(function () {
-                    const docente = $(this).find('td').eq(0).text().trim();
-                    const especialidad = $(this).find('td').eq(1).text().trim();
-                    const area = $(this).find('td').eq(2).text().trim();
-                    const materia = $(this).find('td').eq(3).text().trim();
-                    const grado = $(this).find('td').eq(4).text().trim();
-                    const grupo = $(this).find('td').eq(5).text().trim();
+                    rowNumber++;
+                    const $row = $(this);
+                    const docente = $row.find('td').eq(0).text().trim();
+                    const especialidad = $row.find('td').eq(1).text().trim();
+                    const area = $row.find('td').eq(2).text().trim();
+                    const materia = $row.find('td').eq(3).text().trim();
+                    const grado = $row.find('td').eq(4).text().trim();
+                    const grupo = $row.find('td').eq(5).text().trim();
 
-                    if (docente && especialidad && area && materia && grado && grupo) {
+                    const camposFaltantes = [];
+                    if (!docente) camposFaltantes.push("Docente");
+                    if (!especialidad) camposFaltantes.push("Especialidad");
+                    if (!area) camposFaltantes.push("Área");
+                    if (!materia) camposFaltantes.push("Materia");
+                    if (!grado) camposFaltantes.push("Grado");
+                    if (!grupo) camposFaltantes.push("Grupo");
+
+                    if (camposFaltantes.length > 0) {
+                        errores.push(`Fila ${rowNumber}: Faltan los campos: ${camposFaltantes.join(", ")}`);
+                        filasConErrores.add(rowNumber);
+                        marcarFilaConError($row);
+                    } else {
                         asignaciones.push({ docente, especialidad, area, materia, grado, grupo });
                     }
                 });
 
+                if (errores.length > 0) {
+                    Swal.fire({
+                        title: "Error de validación",
+                        html: `
+                            <div class="text-danger mb-2">Por favor, complete los siguientes campos:</div>
+                            <div style="max-height: 200px; overflow-y: auto; text-align: left;">
+                                ${errores.join("<br>")}
+                            </div>
+                        `,
+                        icon: "error"
+                    });
+                    return;
+                }
+
                 if (asignaciones.length === 0) {
-                    Swal.fire("Sin datos válidos", "No hay filas completas para guardar. Revisa el archivo o corrige las filas marcadas en rojo.", "error");
+                    Swal.fire("Sin datos válidos", "No hay filas completas para guardar.", "error");
                     return;
                 }
 
@@ -165,7 +233,9 @@
                     cancelButtonText: "Cancelar"
                 }).then(result => {
                     if (result.isConfirmed) {
-                        Swal.showLoading();
+                        // Mostrar overlay y deshabilitar botón
+                        $('#loadingOverlay').show();
+                        $('#btnGuardarAsignaciones').prop('disabled', true);
 
                         $.ajax({
                             url: '/AcademicAssignment/SaveAssignmentsFromExcel',
@@ -173,9 +243,13 @@
                             contentType: 'application/json',
                             data: JSON.stringify(asignaciones),
                             success: function (response) {
+                                $('#loadingOverlay').hide();
+                                $('#btnGuardarAsignaciones').prop('disabled', false);
                                 Swal.fire("Éxito", response.message || "Asignaciones guardadas correctamente.", "success");
                             },
                             error: function () {
+                                $('#loadingOverlay').hide();
+                                $('#btnGuardarAsignaciones').prop('disabled', false);
                                 Swal.fire("Error del servidor", "No se pudieron guardar las asignaciones. Intenta más tarde.", "error");
                             }
                         });

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Dtos;
 using SchoolManager.Models;
 using SchoolManager.Models.ViewModels;
 using SchoolManager.Services.Interfaces;
@@ -15,36 +16,65 @@ namespace SchoolManager.Controllers
     {
         private readonly SchoolDbContext _context;
         private readonly IUserService _userService;
+        private readonly ICurrentUserService _currentUserService;
         private readonly ISubjectService _subjectService;
         private readonly IGroupService _groupService;
         private readonly IGradeLevelService _gradeLevelService;
+        private readonly IAreaService _areaService;
+        private readonly ISpecialtyService _specialtyService;
         private readonly IStudentAssignmentService _studentAssignmentService;
+        private readonly ISubjectAssignmentService _subjectAssignmentService;
+
 
         public SubjectAssignmentController(
             SchoolDbContext context,
             IUserService userService,
+            ICurrentUserService currentUserService,
             ISubjectService subjectService,
             IGroupService groupService,
             IGradeLevelService gradeLevelService,
-            IStudentAssignmentService studentAssignmentService)
+            IAreaService areaService,
+            ISpecialtyService specialtyService,
+            IStudentAssignmentService studentAssignmentService,
+            ISubjectAssignmentService subjectAssignmentService)
         {
             _context = context;
             _userService = userService;
+            _currentUserService = currentUserService;
             _subjectService = subjectService;
             _groupService = groupService;
             _gradeLevelService = gradeLevelService;
+            _areaService = areaService;
+            _specialtyService = specialtyService;
             _studentAssignmentService = studentAssignmentService;
+            _subjectAssignmentService = subjectAssignmentService;
+
         }
 
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            // Obtener el usuario actual y su escuela
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
+            var schoolId = currentUser.SchoolId;
+            if (schoolId == null)
+            {
+                return View(new List<SubjectAssignmentViewModel>());
+            }
+
+            // Obtener solo las asignaciones de la escuela del usuario
             var subjectAssignments = await _context.SubjectAssignments
                 .Include(sa => sa.Specialty)
                 .Include(sa => sa.Area)
                 .Include(sa => sa.Subject)
                 .Include(sa => sa.GradeLevel)
                 .Include(sa => sa.Group)
+                .Where(sa => sa.SchoolId == schoolId)
                 .ToListAsync();
 
             var viewModel = subjectAssignments.Select(sa => new SubjectAssignmentViewModel
@@ -72,12 +102,26 @@ namespace SchoolManager.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllAssignments()
         {
+            // Obtener el usuario actual y su escuela
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null)
+            {
+                return Json(new { success = false, message = "Usuario no autenticado." });
+            }
+
+            var schoolId = currentUser.SchoolId;
+            if (schoolId == null)
+            {
+                return Json(new { success = true, assignments = new List<object>() });
+            }
+
             var allAssignments = await _context.SubjectAssignments
                 .Include(sa => sa.Specialty)
                 .Include(sa => sa.Area)
                 .Include(sa => sa.Subject)
                 .Include(sa => sa.GradeLevel)
                 .Include(sa => sa.Group)
+                .Where(sa => sa.SchoolId == schoolId)
                 .Select(sa => new
                 {
                     sa.Id,
@@ -95,6 +139,187 @@ namespace SchoolManager.Controllers
                 .ToListAsync();
 
             return Json(new { success = true, assignments = allAssignments });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDropdownData()
+        {
+            try
+            {
+                // Obtener el usuario actual y su escuela
+                var currentUser = await _currentUserService.GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return Json(new { success = false, message = "Usuario no autenticado." });
+                }
+
+                var schoolId = currentUser.SchoolId;
+                if (schoolId == null)
+                {
+                    return Json(new { success = false, message = "Usuario no tiene escuela asignada." });
+                }
+
+                // Obtener todos los datos disponibles (sin filtrar por SchoolId ya que algunos modelos no lo tienen)
+                var specialties = await _context.Specialties.ToListAsync();
+                var areas = await _context.Areas.ToListAsync();
+                var subjects = await _context.Subjects.ToListAsync();
+                var gradeLevels = await _context.GradeLevels.ToListAsync();
+                var groups = await _context.Groups.ToListAsync();
+
+                return Json(new
+                {
+                    success = true,
+                    specialties = specialties.Select(s => new { s.Id, s.Name }),
+                    areas = areas.Select(a => new { a.Id, a.Name }),
+                    subjects = subjects.Select(s => new { s.Id, s.Name }),
+                    gradeLevels = gradeLevels.Select(g => new { g.Id, g.Name }),
+                    groups = groups.Select(g => new { g.Id, g.Name })
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error al cargar los datos: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] SubjectAssignmentCreateDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Los datos no son válidos." });
+            }
+
+            try
+            {
+                // Obtener el usuario actual y su escuela
+                var currentUser = await _currentUserService.GetCurrentUserAsync();
+                if (currentUser == null)
+                {
+                    return Json(new { success = false, message = "Usuario no autenticado." });
+                }
+
+                var schoolId = currentUser.SchoolId;
+                if (schoolId == null)
+                {
+                    return Json(new { success = false, message = "Usuario no tiene escuela asignada." });
+                }
+
+                // Obtener los nombres de los elementos para mensajes más descriptivos
+                var specialty = await _context.Specialties.FindAsync(model.SpecialtyId);
+                var area = await _context.Areas.FindAsync(model.AreaId);
+                var subject = await _context.Subjects.FindAsync(model.SubjectId);
+                var gradeLevel = await _context.GradeLevels.FindAsync(model.GradeLevelId);
+                var group = await _context.Groups.FindAsync(model.GroupId);
+
+                // Verificar que no exista otra asignación con la misma combinación completa
+                var existingAssignment = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SpecialtyId == model.SpecialtyId &&
+                        sa.AreaId == model.AreaId &&
+                        sa.SubjectId == model.SubjectId &&
+                        sa.GradeLevelId == model.GradeLevelId &&
+                        sa.GroupId == model.GroupId &&
+                        sa.SchoolId == schoolId
+                    );
+
+                if (existingAssignment != null)
+                {
+                    var message = $"Ya existe una asignación con la siguiente combinación:\n" +
+                                $"• Especialidad: {existingAssignment.Specialty.Name}\n" +
+                                $"• Área: {existingAssignment.Area.Name}\n" +
+                                $"• Materia: {existingAssignment.Subject.Name}\n" +
+                                $"• Grado: {existingAssignment.GradeLevel.Name}\n" +
+                                $"• Grupo: {existingAssignment.Group.Name}\n\n" +
+                                $"Esta combinación ya está registrada en el sistema.";
+
+                    return Json(new { success = false, message = message });
+                }
+
+                // Verificar combinaciones parciales que podrían causar conflictos
+                var sameSpecialtyAreaSubject = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SpecialtyId == model.SpecialtyId &&
+                        sa.AreaId == model.AreaId &&
+                        sa.SubjectId == model.SubjectId &&
+                        sa.SchoolId == schoolId &&
+                        (sa.GradeLevelId != model.GradeLevelId || sa.GroupId != model.GroupId)
+                    );
+
+                if (sameSpecialtyAreaSubject != null)
+                {
+                    var message = $"Ya existe una asignación con la misma Especialidad, Área y Materia:\n" +
+                                $"• Especialidad: {sameSpecialtyAreaSubject.Specialty.Name}\n" +
+                                $"• Área: {sameSpecialtyAreaSubject.Area.Name}\n" +
+                                $"• Materia: {sameSpecialtyAreaSubject.Subject.Name}\n" +
+                                $"• Grado: {sameSpecialtyAreaSubject.GradeLevel.Name}\n" +
+                                $"• Grupo: {sameSpecialtyAreaSubject.Group.Name}\n\n" +
+                                $"Verifique que no esté duplicando la misma materia para diferentes grados o grupos.";
+
+                    return Json(new { success = false, message = message });
+                }
+
+                // Verificar si la materia ya está asignada al mismo grupo
+                var sameSubjectGroup = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SubjectId == model.SubjectId &&
+                        sa.GroupId == model.GroupId &&
+                        sa.SchoolId == schoolId &&
+                        sa.Id != Guid.Empty // Excluir la asignación actual si estamos editando
+                    );
+
+                if (sameSubjectGroup != null)
+                {
+                    var message = $"La materia '{subject?.Name}' ya está asignada al grupo '{group?.Name}' con:\n" +
+                                $"• Especialidad: {sameSubjectGroup.Specialty.Name}\n" +
+                                $"• Área: {sameSubjectGroup.Area.Name}\n" +
+                                $"• Grado: {sameSubjectGroup.GradeLevel.Name}\n\n" +
+                                $"Una materia no puede estar asignada al mismo grupo más de una vez.";
+
+                    return Json(new { success = false, message = message });
+                }
+
+                var subjectAssignment = new SubjectAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    SpecialtyId = model.SpecialtyId,
+                    AreaId = model.AreaId,
+                    SubjectId = model.SubjectId,
+                    GradeLevelId = model.GradeLevelId,
+                    GroupId = model.GroupId,
+                    SchoolId = schoolId,
+                    Status = "Active",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.SubjectAssignments.Add(subjectAssignment);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Asignación creada correctamente." });
+            }
+            catch (DbUpdateException ex)
+            {
+                return Json(new { success = false, message = "Error al crear la asignación en la base de datos. Por favor revisa los datos." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Ocurrió un error inesperado: " + ex.Message });
+            }
         }
 
 
@@ -117,19 +342,92 @@ namespace SchoolManager.Controllers
                     return Json(new { success = false, message = "La asignación no existe." });
                 }
 
-                // Verificar que no exista otra asignación igual
-                var exists = await _context.SubjectAssignments.AnyAsync(sa =>
-                    sa.SpecialtyId == model.SpecialtyId &&
-                    sa.AreaId == model.AreaId &&
-                    sa.SubjectId == model.SubjectId &&
-                    sa.GradeLevelId == model.GradeLevelId &&
-                    sa.GroupId == model.GroupId &&
-                    sa.Id != model.Id
-                );
+                // Obtener los nombres de los elementos para mensajes más descriptivos
+                var specialty = await _context.Specialties.FindAsync(model.SpecialtyId);
+                var area = await _context.Areas.FindAsync(model.AreaId);
+                var subject = await _context.Subjects.FindAsync(model.SubjectId);
+                var gradeLevel = await _context.GradeLevels.FindAsync(model.GradeLevelId);
+                var group = await _context.Groups.FindAsync(model.GroupId);
 
-                if (exists)
+                // Verificar que no exista otra asignación con la misma combinación completa
+                var existingAssignment = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SpecialtyId == model.SpecialtyId &&
+                        sa.AreaId == model.AreaId &&
+                        sa.SubjectId == model.SubjectId &&
+                        sa.GradeLevelId == model.GradeLevelId &&
+                        sa.GroupId == model.GroupId &&
+                        sa.Id != model.Id
+                    );
+
+                if (existingAssignment != null)
                 {
-                    return Json(new { success = false, message = "Ya existe una asignación con los mismos datos." });
+                    var message = $"Ya existe una asignación con la siguiente combinación:\n" +
+                                $"• Especialidad: {existingAssignment.Specialty.Name}\n" +
+                                $"• Área: {existingAssignment.Area.Name}\n" +
+                                $"• Materia: {existingAssignment.Subject.Name}\n" +
+                                $"• Grado: {existingAssignment.GradeLevel.Name}\n" +
+                                $"• Grupo: {existingAssignment.Group.Name}\n\n" +
+                                $"Esta combinación ya está registrada en el sistema.";
+
+                    return Json(new { success = false, message = message });
+                }
+
+                // Verificar combinaciones parciales que podrían causar conflictos
+                var sameSpecialtyAreaSubject = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SpecialtyId == model.SpecialtyId &&
+                        sa.AreaId == model.AreaId &&
+                        sa.SubjectId == model.SubjectId &&
+                        sa.Id != model.Id &&
+                        (sa.GradeLevelId != model.GradeLevelId || sa.GroupId != model.GroupId)
+                    );
+
+                if (sameSpecialtyAreaSubject != null)
+                {
+                    var message = $"Ya existe una asignación con la misma Especialidad, Área y Materia:\n" +
+                                $"• Especialidad: {sameSpecialtyAreaSubject.Specialty.Name}\n" +
+                                $"• Área: {sameSpecialtyAreaSubject.Area.Name}\n" +
+                                $"• Materia: {sameSpecialtyAreaSubject.Subject.Name}\n" +
+                                $"• Grado: {sameSpecialtyAreaSubject.GradeLevel.Name}\n" +
+                                $"• Grupo: {sameSpecialtyAreaSubject.Group.Name}\n\n" +
+                                $"Verifique que no esté duplicando la misma materia para diferentes grados o grupos.";
+
+                    return Json(new { success = false, message = message });
+                }
+
+                // Verificar si la materia ya está asignada al mismo grupo
+                var sameSubjectGroup = await _context.SubjectAssignments
+                    .Include(sa => sa.Specialty)
+                    .Include(sa => sa.Area)
+                    .Include(sa => sa.Subject)
+                    .Include(sa => sa.GradeLevel)
+                    .Include(sa => sa.Group)
+                    .FirstOrDefaultAsync(sa =>
+                        sa.SubjectId == model.SubjectId &&
+                        sa.GroupId == model.GroupId &&
+                        sa.Id != model.Id
+                    );
+
+                if (sameSubjectGroup != null)
+                {
+                    var message = $"La materia '{subject?.Name}' ya está asignada al grupo '{group?.Name}' con:\n" +
+                                $"• Especialidad: {sameSubjectGroup.Specialty.Name}\n" +
+                                $"• Área: {sameSubjectGroup.Area.Name}\n" +
+                                $"• Grado: {sameSubjectGroup.GradeLevel.Name}\n\n" +
+                                $"Una materia no puede estar asignada al mismo grupo más de una vez.";
+
+                    return Json(new { success = false, message = message });
                 }
 
                 // Actualizar la asignación

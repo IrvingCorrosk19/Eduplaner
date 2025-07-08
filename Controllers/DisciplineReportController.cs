@@ -53,12 +53,11 @@ public class DisciplineReportController : Controller
                 SubjectId = !string.IsNullOrEmpty(report.SubjectId) ? Guid.Parse(report.SubjectId) : (Guid?)null,
                 GroupId = !string.IsNullOrEmpty(report.GroupId) ? Guid.Parse(report.GroupId) : (Guid?)null,
                 GradeLevelId = !string.IsNullOrEmpty(report.GradeLevelId) ? Guid.Parse(report.GradeLevelId) : (Guid?)null,
-                Date = DateOnly.Parse(report.Date),
-                Hora = !string.IsNullOrEmpty(report.Hora) ? TimeOnly.Parse(report.Hora) : null,
+                Date = DateTime.SpecifyKind(DateTime.Parse(report.Date), DateTimeKind.Local).ToUniversalTime(),
                 ReportType = report.ReportType,
                 Status = report.Status,
                 Description = report.Description,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                CreatedAt = DateTime.UtcNow
             };
 
             try
@@ -117,7 +116,6 @@ public class DisciplineReportController : Controller
         var reports = await _disciplineReportService.GetByStudentDtoAsync(studentId);
         return Json(reports.Select(r => new {
             date = r.Date,
-            time = r.Time,
             type = r.Type,
             status = r.Status,
             description = r.Description,
@@ -140,7 +138,6 @@ public class DisciplineReportController : Controller
             var result = reports.Select(r => new {
                 estudiante = r.Student != null ? $"{r.Student.Name} {r.Student.LastName}" : null,
                 fecha = r.Date.ToString("dd/MM/yyyy"),
-                hora = r.Hora?.ToString("HH:mm"),
                 tipo = r.ReportType,
                 status = r.Status,
                 description = r.Description,
@@ -160,8 +157,8 @@ public class DisciplineReportController : Controller
     public async Task<IActionResult> ExportToExcel(DateTime? fechaInicio, DateTime? fechaFin, Guid? gradoId)
     {
         var reports = await _disciplineReportService.GetFilteredAsync(fechaInicio, fechaFin, gradoId);
-        var csv = "Estudiante,Fecha,Hora,Tipo,Estado,Descripción\n" +
-            string.Join("\n", reports.Select(r => $"{(r.Student != null ? r.Student.Name : "")},{r.Date:yyyy-MM-dd},{r.CreatedAt?.ToString("HH:mm") ?? ""},{r.ReportType},{r.Status},{r.Description}"));
+        var csv = "Estudiante,Fecha,Tipo,Estado,Descripción\n" +
+            string.Join("\n", reports.Select(r => $"{(r.Student != null ? r.Student.Name : "")},{r.Date:yyyy-MM-dd},{r.ReportType},{r.Status},{r.Description}"));
         var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
         return File(bytes, "text/csv", "registros_disciplina.csv");
     }

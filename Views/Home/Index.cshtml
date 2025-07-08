@@ -1,9 +1,114 @@
-﻿@{
+﻿@inject SchoolManager.Services.Interfaces.ICurrentUserService CurrentUserService
+@{
     ViewData["Title"] = "Dashboard";
     Layout = "~/Views/Shared/_AdminLayout.cshtml";
+    var currentUser = await CurrentUserService.GetCurrentUserAsync();
+    var userSchool = await CurrentUserService.GetCurrentUserSchoolAsync();
 }
 
 <div class="container-fluid">
-    <h1>Bienvenido al Dashboard</h1>
-    <p>Contenido personalizado aquí</p>
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-home mr-2"></i>
+                        Bienvenido al Dashboard
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (currentUser != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-user mr-2"></i>Información del Usuario</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <td><strong>Nombre:</strong></td>
+                                            <td>@currentUser.Name @currentUser.LastName</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Email:</strong></td>
+                                            <td>@currentUser.Email</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Rol:</strong></td>
+                                            <td>
+                                                <span class="badge badge-primary">@currentUser.Role</span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Estado:</strong></td>
+                                            <td>
+                                                <span class="badge badge-@(currentUser.Status == "active" ? "success" : "warning")">
+                                                    @(currentUser.Status == "active" ? "Activo" : "Inactivo")
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        @if (currentUser.LastLogin.HasValue)
+                                        {
+                                            <tr>
+                                                <td><strong>Último Login:</strong></td>
+                                                <td>@currentUser.LastLogin.Value.ToString("dd/MM/yyyy HH:mm")</td>
+                                            </tr>
+                                        }
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-school mr-2"></i>Información de la Escuela</h5>
+                                @if (userSchool != null)
+                                {
+                                    <div class="text-center mb-3">
+                                        @if (!string.IsNullOrEmpty(userSchool.LogoUrl))
+                                        {
+                                            <img src="/File/GetSchoolLogo?logoUrl=@userSchool.LogoUrl" 
+                                                 alt="Logo de @userSchool.Name" 
+                                                 class="img-fluid rounded" 
+                                                 style="max-height: 100px;">
+                                        }
+                                        else
+                                        {
+                                            <i class="fas fa-school fa-3x text-muted"></i>
+                                        }
+                                    </div>
+                                    <div class="table-responsive">
+                                        <table class="table table-borderless">
+                                            <tr>
+                                                <td><strong>Escuela:</strong></td>
+                                                <td>@userSchool.Name</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Dirección:</strong></td>
+                                                <td>@userSchool.Address</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Teléfono:</strong></td>
+                                                <td>@userSchool.Phone</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        No se encontró información de la escuela asociada.
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            No se pudo obtener la información del usuario.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

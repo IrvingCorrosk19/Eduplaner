@@ -1,0 +1,93 @@
+@model SchoolManager.ViewModels.UserEditViewModel
+
+@{
+    ViewData["Title"] = "Editar Usuario";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-user-edit me-2"></i>@ViewData["Title"]
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditUser" method="post">
+                        <input type="hidden" asp-for="Id" />
+                        
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="LastName" class="form-label"></label>
+                            <input asp-for="LastName" class="form-control" />
+                            <span asp-validation-for="LastName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Role" class="form-label"></label>
+                            <select asp-for="Role" class="form-select">
+                                <option value="superadmin">Super Administrador</option>
+                                <option value="admin">Administrador</option>
+                                <option value="teacher">Profesor</option>
+                                <option value="student">Estudiante</option>
+                            </select>
+                            <span asp-validation-for="Role" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Status" class="form-label"></label>
+                            @if (Model.Role == "superadmin")
+                            {
+                                <select asp-for="Status" class="form-select" disabled>
+                                    <option value="active">Activo</option>
+                                    <option value="inactive">Inactivo</option>
+                                </select>
+                                <input type="hidden" asp-for="Status" value="active" />
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle"></i> Los usuarios SuperAdmin no pueden ser inactivados por seguridad.
+                                </small>
+                            }
+                            else
+                            {
+                                <select asp-for="Status" class="form-select">
+                                    <option value="active">Activo</option>
+                                    <option value="inactive">Inactivo</option>
+                                </select>
+                            }
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+
+                        <div class="card-footer bg-transparent border-0">
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="ListSchools" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Volver
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

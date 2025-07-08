@@ -254,7 +254,7 @@
         font-weight: 600;
     }
 
-    .info-alert p {
+    .info-alert p {image.png
         color: var(--secondary-color);
         margin: 0;
     }
@@ -444,11 +444,11 @@
                 <div class="card-body">
                     <form id="formNew" class="row g-3 align-items-end" enctype="multipart/form-data">
                         @Html.AntiForgeryToken()
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">Nombre de la Actividad</label>
                             <input id="activityName" name="Name" class="form-control" placeholder="Ej. Tarea 2, Examen Final" required />
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label class="form-label">Tipo</label>
                             <select id="activityType" name="Type" class="form-select">
                                 @foreach (var t in Model.Types)
@@ -456,6 +456,10 @@
                                     <option value="@t.Name">@t.Name</option>
                                 }
                             </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Fecha de Entrega</label>
+                            <input type="date" id="activityDueDate" name="DueDate" class="form-control" />
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Archivo (opcional)</label>
@@ -510,7 +514,23 @@
                 <div class="card-header">
                     <h5 class="mb-0"><i class="bi bi-bar-chart-line me-2"></i>Resumen Final por Estudiante</h5>
                 </div>
-                <div class="card-body p-0">
+                <div class="card-body">
+                    <!-- Filtros para promedios finales -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Materia y Grupo</label>
+                            <select id="selGroupResumen" class="form-select">
+                                @foreach (var subject in Model.Teacher.SubjectGroupDetails)
+                                {
+                                    foreach (var group in subject.GroupGradePairs)
+                                    {
+                                        var value = $"{subject.SubjectId}|{group.GroupId}|{group.GradeLevelId}";
+                                        <option value="@value">@subject.SubjectName - @group.GradeLevelName @group.GroupName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                         <table id="summaryTable" class="table table-hover mb-0">
                             <thead>
@@ -524,33 +544,7 @@
                                 </tr>
                             </thead>
                             <tbody id="resumenBody">
-                                @foreach (var student in Model.StudentAverages)
-                                {
-                                    var t1 = student.Promedios.ContainsKey("1T") ? student.Promedios["1T"] : 0.0m;
-                                    var t2 = student.Promedios.ContainsKey("2T") ? student.Promedios["2T"] : 0.0m;
-                                    var t3 = student.Promedios.ContainsKey("3T") ? student.Promedios["3T"] : 0.0m;
-
-                                    var trimestresValidos = 0;
-                                    decimal sumaTrimestreValidos = 0;
-
-                                    if (t1 > 0) { trimestresValidos++; sumaTrimestreValidos += t1; }
-                                    if (t2 > 0) { trimestresValidos++; sumaTrimestreValidos += t2; }
-                                    if (t3 > 0) { trimestresValidos++; sumaTrimestreValidos += t3; }
-
-                                    var promedioFinal = trimestresValidos > 0 ? sumaTrimestreValidos / trimestresValidos : 0.0m;
-                                    var promedioTruncado = Math.Floor(promedioFinal * 10) / 10;
-                                    var estado = promedioTruncado >= 3.0m ? "Aprobado" : "Reprobado";
-                                    var estadoClase = estado == "Aprobado" ? "text-success" : "text-danger";
-
-                                    <tr>
-                                        <td>@student.StudentFullName</td>
-                                        <td>@t1.ToString("0.0")</td>
-                                        <td>@t2.ToString("0.0")</td>
-                                        <td>@t3.ToString("0.0")</td>
-                                        <td><strong>@promedioTruncado.ToString("0.0")</strong></td>
-                                        <td class="@estadoClase fw-semibold">@estado</td>
-                                    </tr>
-                                }
+                                <!-- Aquí se llenará dinámicamente con JS -->
                             </tbody>
                         </table>
                     </div>
@@ -1038,7 +1032,7 @@
                         if (activities[type] && activities[type].length > 0) {
                         activities[type].forEach(a => {
                             const savedScore = scores[s.id]?.[type]?.[a.name] || '';
-                            row += `<td contenteditable class="score-cell" data-stu="${s.id}" data-type="${type}" data-act="${a.name}">${savedScore !== '' ? parseFloat(savedScore).toFixed(1) : ''}</td>`;
+                            row += `<td contenteditable class="score-cell" data-stu="${s.id}" data-type="${type}" data-act="${a.name}">${savedScore !== '' ? Number(savedScore).toFixed(1) : ''}</td>`;
                         });
                         row += `<td class='text-primary avg-${type}'></td>`;
                         }
@@ -1048,38 +1042,88 @@
                     body.append(row);
                 });
 
+                function procesarCeldaNota($cell) {
+                    let value = $cell.text().trim();
+
+                    const student = $cell.data('stu');
+                    const type = $cell.data('type');
+                    const act = $cell.data('act');
+
+                    if (!value) {
+                        // Si la celda queda vacía, elimina el valor de scores
+                        if (scores[student] && scores[student][type]) {
+                            delete scores[student][type][act];
+                        }
+                        calcAverages();
+                        return;
+                    }
+
+                    // Si es un entero o termina en punto, formatear a X.0
+                    if (/^[1-5]$/.test(value) || /^[1-5]\.$/.test(value)) {
+                        value = value.replace('.', '') + '.0';
+                    }
+
+                    const validFormat = /^[1-5](\.[0-9])?$/;
+                    if (!validFormat.test(value)) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Formato inválido',
+                            text: 'Por favor ingrese un número entre 1.0 y 5.0 con un decimal'
+                        });
+                        $cell.text('');
+                        calcAverages();
+                        return;
+                    }
+
+                    const numValue = parseFloat(value);
+                    if (numValue < 1 || numValue > 5) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Valor fuera de rango',
+                            text: 'La calificación debe estar entre 1.0 y 5.0'
+                        });
+                        $cell.text('');
+                        calcAverages();
+                        return;
+                    }
+
+                    // Siempre formatear el valor final a un decimal
+                    const formattedValue = numValue.toFixed(1);
+                    $cell.text(formattedValue);
+
+                    if (!scores[student]) scores[student] = {};
+                    if (!scores[student][type]) scores[student][type] = {};
+                    scores[student][type][act] = formattedValue;
+
+                    calcAverages();
+                }
+
                 $('.score-cell').off('blur keypress keydown').on({
                     keypress: function(e) {
                         if (e.which === 13) {
                             e.preventDefault();
+                            procesarCeldaNota($(this));
                             $(this).blur();
                             return false;
                         }
-
                         const $cell = $(this);
                         const currentValue = $cell.text();
                         const selectedText = window.getSelection().toString();
-                        
                         if (selectedText === currentValue) {
                             return true;
                         }
-
                         if (currentValue.includes('.') && currentValue.split('.')[1].length >= 1) {
                             return false;
                         }
-
                         if (!currentValue.includes('.') && currentValue.length >= 1 && e.which !== 46) {
                             return false;
                         }
-
                         if (e.which !== 46 && (e.which < 48 || e.which > 57)) {
                             return false;
                         }
-
                         if (e.which === 46 && currentValue.includes('.')) {
                             return false;
                         }
-
                         return true;
                     },
                     keydown: function(e) {
@@ -1094,58 +1138,14 @@
                     paste: function(e) {
                         e.preventDefault();
                         const pastedText = (e.originalEvent.clipboardData || window.clipboardData).getData('text');
-                        
                         if (/^[1-5](\.[0-9])?$/.test(pastedText)) {
                             $(this).text(pastedText);
+                            procesarCeldaNota($(this));
                             $(this).blur();
                         }
                     },
                     blur: function() {
-                        const $cell = $(this);
-                        let value = $cell.text().trim();
-
-                        if (!value) {
-                            return;
-                        }
-
-                        if (/^[1-5]$/.test(value)) {
-                            value = value + '.0';
-                        }
-
-                        const validFormat = /^[1-5](\.[0-9])?$/;
-                        if (!validFormat.test(value)) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Formato inválido',
-                                text: 'Por favor ingrese un número entre 1.0 y 5.0 con un decimal'
-                            });
-                            $cell.text('');
-                            return;
-                        }
-
-                        const numValue = parseFloat(value);
-                        if (numValue < 1 || numValue > 5) {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Valor fuera de rango',
-                                text: 'La calificación debe estar entre 1.0 y 5.0'
-                            });
-                            $cell.text('');
-                            return;
-                        }
-
-                        const formattedValue = truncateToOneDecimal(numValue);
-                        $cell.text(formattedValue);
-
-                        const student = $cell.data('stu');
-                        const type = $cell.data('type');
-                        const act = $cell.data('act');
-
-                        if (!scores[student]) scores[student] = {};
-                        if (!scores[student][type]) scores[student][type] = {};
-                        scores[student][type][act] = formattedValue;
-
-                        calcAverages();
+                        procesarCeldaNota($(this));
                     }
                 });
 
@@ -1274,17 +1274,17 @@
                             resumenBody.empty();
 
                             response.data.forEach(student => {
-                                const t1 = student.promedios['1T'] || 0.0;
-                                const t2 = student.promedios['2T'] || 0.0;
-                                const t3 = student.promedios['3T'] || 0.0;
+                                const t1 = student.promedios && typeof student.promedios['1T'] !== 'undefined' ? student.promedios['1T'] : 0.0;
+                                const t2 = student.promedios && typeof student.promedios['2T'] !== 'undefined' ? student.promedios['2T'] : 0.0;
+                                const t3 = student.promedios && typeof student.promedios['3T'] !== 'undefined' ? student.promedios['3T'] : 0.0;
                                 
                                 const row = `
                                     <tr>
                                         <td>${student.studentFullName}</td>
-                                        <td>${t1.toFixed(1)}</td>
-                                        <td>${t2.toFixed(1)}</td>
-                                        <td>${t3.toFixed(1)}</td>
-                                        <td><strong>${student.promedioFinal.toFixed(1)}</strong></td>
+                                        <td>${typeof t1 === 'number' && !isNaN(t1) ? t1.toFixed(1) : '0.0'}</td>
+                                        <td>${typeof t2 === 'number' && !isNaN(t2) ? t2.toFixed(1) : '0.0'}</td>
+                                        <td>${typeof t3 === 'number' && !isNaN(t3) ? t3.toFixed(1) : '0.0'}</td>
+                                        <td><strong>${typeof student.promedioFinal === 'number' && !isNaN(student.promedioFinal) ? student.promedioFinal.toFixed(1) : '0.0'}</strong></td>
                                         <td class="${student.estado === 'Aprobado' ? 'text-success' : 'text-danger'} fw-semibold">
                                             ${student.estado}
                                         </td>
@@ -1332,6 +1332,10 @@
                 }
                 formData.append('TrimesterCode', trimester);
                 formData.append('Date', new Date().toISOString());
+                const dueDate = $('#activityDueDate').val();
+                if (dueDate) {
+                    formData.append('DueDate', dueDate);
+                }
                 formData.append('TeacherId', '@Model.TeacherId');
                 formData.append('SubjectId', subjectId);
                 formData.append('GroupId', groupId);
@@ -1349,6 +1353,7 @@
                             Swal.fire({ icon: 'success', title: 'Actividad agregada', text: 'La actividad se ha agregado correctamente' });
                             $('#activityName').val('');
                             $('#activityFile').val('');
+                            $('#activityDueDate').val('');
                             loadNotasCargadas(subjectId, groupId, gradeLevelId, trimester);
                         } else {
                             Swal.fire({ icon: 'error', title: 'Error', text: resp.error || 'No se pudo agregar la actividad' });
@@ -1415,9 +1420,7 @@
                     const $row = $(this);
                     const studentId = $row.data('stu-id');
                     
-                    // Solo incluir estudiantes que tengan al menos una nota
                     const notasEstudiante = [];
-                    let tieneNotas = false;
 
                     // Recorrer cada celda de nota
                     $row.find('.score-cell').each(function() {
@@ -1426,37 +1429,34 @@
                         const actividad = $cell.data('act');
                         const nota = $cell.text().trim();
 
-                        if (nota) {
-                            tieneNotas = true;
-                            notasEstudiante.push({
-                                Tipo: tipo,
-                                Actividad: actividad,
-                                Nota: nota.toString()
-                            });
-                        }
+                        notasEstudiante.push({
+                            Tipo: tipo,
+                            Actividad: actividad,
+                            Nota: nota ? nota.toString() : ""
+                        });
                     });
 
-                    if (tieneNotas) {
-                        notasParaGuardar.push({
-                            StudentId: studentId.toString(),
-                            TeacherId: teacherId.toString(),
-                            SubjectId: subjectId.toString(),
-                            GroupId: groupId.toString(),
-                            GradeLevelId: gradeLevelId.toString(),
-                            Trimester: trimester,
-                            Notas: notasEstudiante
-                        });
-                    }
+                    // Siempre incluir todos los estudiantes aunque todas las celdas estén vacías
+                    notasParaGuardar.push({
+                        StudentId: studentId.toString(),
+                        TeacherId: teacherId.toString(),
+                        SubjectId: subjectId.toString(),
+                        GroupId: groupId.toString(),
+                        GradeLevelId: gradeLevelId.toString(),
+                        Trimester: trimester,
+                        Notas: notasEstudiante
+                    });
                 });
 
-                if (notasParaGuardar.length === 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Sin datos',
-                        text: 'No hay notas para guardar.'
-                    });
-                    return;
-                }
+                // Ya no bloqueamos el guardado si todas las celdas están vacías
+                // if (notasParaGuardar.length === 0) {
+                //     Swal.fire({
+                //         icon: 'warning',
+                //         title: 'Sin datos',
+                //         text: 'No hay notas para guardar.'
+                //     });
+                //     return;
+                // }
 
                 console.log('Datos a enviar:', notasParaGuardar);
 
@@ -2521,7 +2521,83 @@
         });
     </script>
 
-  
+    <script>
+        // ... existing code ...
+        // Filtro para promedios finales
+        $('#selGroupResumen').on('change', function() {
+            loadPromediosFinalesResumen();
+        });
+
+        function loadPromediosFinalesResumen() {
+            const combo = $('#selGroupResumen').val();
+            if (!combo) return;
+            const [subjectId, groupId, gradeLevelId] = combo.split('|');
+            const teacherId = '@Model.TeacherId';
+            $.ajax({
+                url: '/TeacherGradebook/GetPromediosFinales',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    teacherId: teacherId,
+                    subjectId: subjectId,
+                    groupId: groupId,
+                    gradeLevelId: gradeLevelId
+                }),
+                success: function(response) {
+                    const resumenBody = $('#resumenBody');
+                    resumenBody.empty();
+                    if (response.success && response.data && response.data.length > 0) {
+                        // Agrupar por estudiante usando propiedades con mayúscula
+                        const estudiantes = {};
+                        response.data.forEach(item => {
+                            if (!estudiantes[item.StudentId]) {
+                                estudiantes[item.StudentId] = {
+                                    nombre: item.StudentFullName,
+                                    t1: null,
+                                    t2: null,
+                                    t3: null,
+                                    estado: 'Sin calificar',
+                                    promedioFinal: null
+                                };
+                            }
+                            if (item.Trimester === '1T') estudiantes[item.StudentId].t1 = item.NotaFinal;
+                            if (item.Trimester === '2T') estudiantes[item.StudentId].t2 = item.NotaFinal;
+                            if (item.Trimester === '3T') estudiantes[item.StudentId].t3 = item.NotaFinal;
+                        });
+                        // Calcular promedio final y estado
+                        Object.values(estudiantes).forEach(est => {
+                            const notas = [est.t1, est.t2, est.t3].filter(x => typeof x === 'number' && !isNaN(x));
+                            est.promedioFinal = notas.length > 0 ? (notas.reduce((a, b) => a + b, 0) / notas.length) : null;
+                            est.estado = est.promedioFinal !== null ? (est.promedioFinal >= 3.0 ? 'Aprobado' : 'Reprobado') : 'Sin calificar';
+                        });
+                        // Renderizar filas
+                        Object.values(estudiantes).forEach(est => {
+                            resumenBody.append(`
+                                <tr>
+                                    <td>${est.nombre}</td>
+                                    <td>${typeof est.t1 === 'number' && !isNaN(est.t1) ? est.t1.toFixed(1) : '0.0'}</td>
+                                    <td>${typeof est.t2 === 'number' && !isNaN(est.t2) ? est.t2.toFixed(1) : '0.0'}</td>
+                                    <td>${typeof est.t3 === 'number' && !isNaN(est.t3) ? est.t3.toFixed(1) : '0.0'}</td>
+                                    <td><strong>${typeof est.promedioFinal === 'number' && !isNaN(est.promedioFinal) ? est.promedioFinal.toFixed(1) : '0.0'}</strong></td>
+                                    <td class="${est.estado === 'Aprobado' ? 'text-success' : 'text-danger'} fw-semibold">${est.estado}</td>
+                                </tr>
+                            `);
+                        });
+                    } else {
+                        resumenBody.append('<tr><td colspan="6" class="text-center text-muted">No hay datos para mostrar.</td></tr>');
+                    }
+                },
+                error: function() {
+                    $('#resumenBody').html('<tr><td colspan="6" class="text-center text-danger">Error al cargar los promedios finales.</td></tr>');
+                }
+            });
+        }
+        // Cargar al inicio
+        $('#resumen-tab').on('click', function() {
+            loadPromediosFinalesResumen();
+        });
+        // ... existing code ...
+    </script>
 }
 
 

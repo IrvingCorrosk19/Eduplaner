@@ -105,10 +105,11 @@
                     contentType: 'application/json',
                     data: JSON.stringify(asignaciones),
                     success: function (response) {
-                        let resumen = `
-                            <b>Asignaciones insertadas:</b> ${response.insertadas}<br>
-                            <b>Duplicadas:</b> ${response.duplicadas}<br>
-                        `;
+                                            let resumen = `
+                        <b>Asignaciones insertadas:</b> ${response.insertadas}<br>
+                        <b>Estudiantes creados:</b> ${response.estudiantesCreados || 0}<br>
+                        <b>Duplicadas:</b> ${response.duplicadas}<br>
+                    `;
 
                         if (response.errores && response.errores.length > 0) {
                             resumen += `<b>Errores:</b><ul>`;

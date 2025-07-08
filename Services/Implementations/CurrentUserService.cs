@@ -2,18 +2,19 @@ using Microsoft.AspNetCore.Http;
 using SchoolManager.Models;
 using SchoolManager.Services.Interfaces;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace SchoolManager.Services.Implementations
 {
     public class CurrentUserService : ICurrentUserService
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IUserService _userService;
+        private readonly SchoolDbContext _context;
 
-        public CurrentUserService(IHttpContextAccessor httpContextAccessor, IUserService userService)
+        public CurrentUserService(IHttpContextAccessor httpContextAccessor, SchoolDbContext context)
         {
             _httpContextAccessor = httpContextAccessor;
-            _userService = userService;
+            _context = context;
         }
 
         public async Task<Guid?> GetCurrentUserIdAsync()
@@ -31,7 +32,7 @@ namespace SchoolManager.Services.Implementations
             if (userId == null)
                 return null;
 
-            return await _userService.GetByIdAsync(userId.Value);
+            return await _context.Users.FindAsync(userId.Value);
         }
 
         public async Task<bool> IsAuthenticatedAsync()
@@ -42,6 +43,15 @@ namespace SchoolManager.Services.Implementations
         public async Task<string?> GetCurrentUserRoleAsync()
         {
             return _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+        }
+
+        public async Task<School?> GetCurrentUserSchoolAsync()
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null || user.SchoolId == null)
+                return null;
+
+            return await _context.Schools.FindAsync(user.SchoolId.Value);
         }
     }
 } 

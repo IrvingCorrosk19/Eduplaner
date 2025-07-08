@@ -25,9 +25,17 @@ public partial class Activity
 
     public DateTime? CreatedAt { get; set; }
 
+    public DateTime? DueDate { get; set; }
+
     public Guid? GradeLevelId { get; set; }
 
+    public Guid? ActivityTypeId { get; set; }
+
+    public Guid? TrimesterId { get; set; }
+
     public virtual ICollection<ActivityAttachment> ActivityAttachments { get; set; } = new List<ActivityAttachment>();
+
+    public virtual ActivityType? ActivityType { get; set; }
 
     public virtual Group? Group { get; set; }
 
@@ -38,4 +46,6 @@ public partial class Activity
     public virtual Subject? Subject { get; set; }
 
     public virtual User? Teacher { get; set; }
+
+    public virtual Trimester? TrimesterNavigation { get; set; }
 }

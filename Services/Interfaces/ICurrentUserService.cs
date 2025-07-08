@@ -8,5 +8,6 @@ namespace SchoolManager.Services.Interfaces
         Task<User?> GetCurrentUserAsync();
         Task<bool> IsAuthenticatedAsync();
         Task<string?> GetCurrentUserRoleAsync();
+        Task<School?> GetCurrentUserSchoolAsync();
     }
 } 

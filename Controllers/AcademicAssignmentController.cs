@@ -18,6 +18,7 @@ public class AcademicAssignmentController : Controller
     private readonly IAcademicAssignmentService _academicAssignmentService;
     private readonly IAreaService _areaService;
     private readonly ISpecialtyService _specialtyService;
+    private readonly ICurrentUserService _currentUserService;
 
     public AcademicAssignmentController(
         ITeacherAssignmentService teacherAssignmentService,
@@ -27,7 +28,8 @@ public class AcademicAssignmentController : Controller
         IGradeLevelService gradeLevelService,
         IAcademicAssignmentService academicAssignmentService,
         IAreaService areaService,
-        ISpecialtyService specialtyService)
+        ISpecialtyService specialtyService,
+        ICurrentUserService currentUserService)
     {
         _teacherAssignmentService = teacherAssignmentService;
         _userService = userService;
@@ -37,6 +39,7 @@ public class AcademicAssignmentController : Controller
         _academicAssignmentService = academicAssignmentService;
         _areaService = areaService;
         _specialtyService = specialtyService;
+        _currentUserService = currentUserService;
     }
 
 
@@ -55,6 +58,10 @@ public class AcademicAssignmentController : Controller
 
         var asignacionesInsertadas = 0;
         var profesoresNoEncontrados = new List<string>();
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+        var schoolId = currentUser?.SchoolId;
+
+        var user = await _currentUserService.GetCurrentUserAsync();
 
         foreach (var asignacion in asignaciones)
         {
@@ -74,21 +81,21 @@ public class AcademicAssignmentController : Controller
 
             // Verifica si ya existe la asignación académica
             bool yaExiste = await _academicAssignmentService.ExisteAsignacionAsync(
-                specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id
+                specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id, user.SchoolId
             );
 
             // Si no existe, se crea
             if (!yaExiste)
             {
                 await _academicAssignmentService.CreateAsignacionAsync(
-                    specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id
+                    specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id, user.SchoolId
                 );
                 asignacionesInsertadas++;
             }
 
             // Obtener el subject_assignment_id
             var subjectAssignmentId = await _academicAssignmentService.GetSubjectAssignmentIdAsync(
-                specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id
+                specialty.Id, areaEntity.Id, subject.Id, grade.Id, groupEntity.Id, user.SchoolId
             );
 
             if (subjectAssignmentId != null && !string.IsNullOrEmpty(correoDocente))
@@ -239,6 +246,8 @@ public class AcademicAssignmentController : Controller
         }
 
         var insertedGroupIds = new List<Guid>();
+        var currentUser = await _currentUserService.GetCurrentUserAsync();
+        var schoolId = currentUser?.SchoolId;
 
         foreach (var groupId in request.GroupIds)
         {
@@ -247,7 +256,8 @@ public class AcademicAssignmentController : Controller
                 request.AreaId,
                 request.SubjectId,
                 request.GradeId,
-                groupId
+                groupId,
+                schoolId
             );
 
             if (subjectAssignmentId == null)

@@ -1,12 +1,16 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Services.Interfaces;
+
 public class GroupService : IGroupService
 {
     private readonly SchoolDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GroupService(SchoolDbContext context)
+    public GroupService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
     public async Task<Group?> GetByNameAndGradeAsync(string groupName)
     {
@@ -24,7 +28,7 @@ public class GroupService : IGroupService
             {
                 Id = Guid.NewGuid(),
                 Name = name,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                CreatedAt = DateTime.UtcNow
             };
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
@@ -32,8 +36,11 @@ public class GroupService : IGroupService
         return group;
     }
 
-    public async Task<List<Group>> GetAllAsync() =>
-        await _context.Groups.ToListAsync();
+    public async Task<List<Group>> GetAllAsync()
+    {
+        return await _context.Groups.ToListAsync();
+    }
+
 
     public async Task<Group?> GetByIdAsync(Guid id) =>
         await _context.Groups.FindAsync(id);
@@ -43,7 +50,7 @@ public class GroupService : IGroupService
         try
         {
             group.Id = Guid.NewGuid();
-            group.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+            group.CreatedAt = DateTime.UtcNow;
 
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();

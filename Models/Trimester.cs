@@ -7,11 +7,25 @@ public partial class Trimester
 {
     public Guid Id { get; set; }
 
+    public Guid? SchoolId { get; set; }
+
     public string Name { get; set; } = null!;
 
-    public DateOnly StartDate { get; set; }
+    public string? Description { get; set; }
 
-    public DateOnly EndDate { get; set; }
+    public int Order { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public DateTime StartDate { get; set; }
+
+    public DateTime EndDate { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    public virtual School? School { get; set; }
 }

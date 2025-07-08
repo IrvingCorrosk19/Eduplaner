@@ -6,8 +6,11 @@ namespace SchoolManager.Dtos
     {
         public string StudentId { get; set; }
         public string StudentFullName { get; set; }
-        public Dictionary<string, decimal> Promedios { get; set; } = new Dictionary<string, decimal>();
-        public decimal PromedioFinal { get; set; }
+        public string Trimester { get; set; }
+        public decimal? PromedioTareas { get; set; }
+        public decimal? PromedioParciales { get; set; }
+        public decimal? PromedioExamenes { get; set; }
+        public decimal? NotaFinal { get; set; }
         public string Estado { get; set; }
     }
 } 

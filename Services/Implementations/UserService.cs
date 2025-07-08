@@ -2,20 +2,34 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManager.Enums;
 using BCrypt.Net;
+using SchoolManager.Services.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
+namespace SchoolManager.Services.Implementations
+{
 public class UserService : IUserService
 {
     private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-    public UserService(SchoolDbContext context)
+        public UserService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+            _currentUserService = currentUserService;
     }
 
     public async Task<List<User>> GetAllStudentsAsync()
     {
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null || currentUser.SchoolId == null)
+                return new List<User>();
+
         return await _context.Users
             .Where(u => u.Role.ToLower() == "student" || u.Role.ToLower() == "estudiante")
+                .Where(u => u.SchoolId == currentUser.SchoolId)
             .OrderBy(u => u.Name)
             .ToListAsync();
     }
@@ -88,8 +102,13 @@ public class UserService : IUserService
     }
     public async Task<List<User>> GetAllTeachersAsync()
     {
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null || currentUser.SchoolId == null)
+                return new List<User>();
+
         return await _context.Users
             .Where(u => u.Role == "teacher")
+                .Where(u => u.SchoolId == currentUser.SchoolId)
             .OrderBy(u => u.Name)
             .ToListAsync();
     }
@@ -97,6 +116,13 @@ public class UserService : IUserService
     {
         try
         {
+                var currentUser = await _currentUserService.GetCurrentUserAsync();
+                if (currentUser == null || currentUser.SchoolId == null)
+                    throw new InvalidOperationException("No se puede crear el usuario porque no hay un usuario actual o no tiene un colegio asignado.");
+
+                // Asignar el SchoolId del usuario actual
+                user.SchoolId = currentUser.SchoolId;
+
             // Hash de la contraseña
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
             
@@ -122,16 +148,30 @@ public class UserService : IUserService
             .Include(u => u.Subjects)
             .Include(u => u.Groups)
             .Include(u => u.Grades)
+            .Include(u => u.School)
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
-    public async Task<List<User>> GetAllAsync() =>
-        await _context.Users.ToListAsync();
+        public async Task<List<User>> GetAllAsync()
+        {
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null || currentUser.SchoolId == null)
+                return new List<User>();
+
+            return await _context.Users
+                .Where(u => u.SchoolId == currentUser.SchoolId)
+                .ToListAsync();
+        }
 
     public async Task<List<User>> GetAllWithAssignmentsByRoleAsync(string role)
     {
+            var currentUser = await _currentUserService.GetCurrentUserAsync();
+            if (currentUser == null || currentUser.SchoolId == null)
+                return new List<User>();
+
         return await _context.Users
             .Where(u => u.Role == role)
+                .Where(u => u.SchoolId == currentUser.SchoolId)
             .Include(u => u.TeacherAssignments)
                 .ThenInclude(ta => ta.SubjectAssignment)
                     .ThenInclude(sa => sa.Subject)
@@ -149,13 +189,42 @@ public class UserService : IUserService
                     .ThenInclude(sa => sa.Specialty)
             .ToListAsync();
     }
-    public async Task<User?> GetByIdAsync(Guid id) =>
+
+        public async Task<List<User>> GetAllWithAssignmentsByRoleSA(string role)
+        {
+            return await _context.Users
+                .Where(u => u.Role == role)                   
+                .Include(u => u.TeacherAssignments)
+                    .ThenInclude(ta => ta.SubjectAssignment)
+                        .ThenInclude(sa => sa.Subject)
+                .Include(u => u.TeacherAssignments)
+                    .ThenInclude(ta => ta.SubjectAssignment)
+                        .ThenInclude(sa => sa.Group)
+                .Include(u => u.TeacherAssignments)
+                    .ThenInclude(ta => ta.SubjectAssignment)
+                        .ThenInclude(sa => sa.GradeLevel)
+                .Include(u => u.TeacherAssignments)
+                    .ThenInclude(ta => ta.SubjectAssignment)
+                        .ThenInclude(sa => sa.Area)
+                .Include(u => u.TeacherAssignments)
+                    .ThenInclude(ta => ta.SubjectAssignment)
+                        .ThenInclude(sa => sa.Specialty)
+                .ToListAsync();
+        }
+        public async Task<User?> GetByIdAsync(Guid id) =>
         await _context.Users.FindAsync(id);
 
     public async Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds)
     {
         try
         {
+                var currentUser = await _currentUserService.GetCurrentUserAsync();
+                if (currentUser == null || currentUser.SchoolId == null)
+                    throw new InvalidOperationException("No se puede crear el usuario porque no hay un usuario actual o no tiene un colegio asignado.");
+
+                // Asignar el SchoolId del usuario actual
+                user.SchoolId = currentUser.SchoolId;
+
             // Hash de la contraseña
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
             
@@ -185,7 +254,7 @@ public class UserService : IUserService
 
 public async Task DeleteAsync(Guid id)
 {
-    await using var transaction = await _context.Database.BeginTransactionAsync(); // 🔁 INICIO TRANSACCIÓN
+        await using var transaction = await _context.Database.BeginTransactionAsync(); // �� INICIO TRANSACCIÓN
 
     try
     {
@@ -307,6 +376,8 @@ public async Task<User?> AuthenticateAsync(string email, string password)
 
         return await _context.Users
             .FirstOrDefaultAsync(u => u.Email.ToLower().Trim() == email.ToLower().Trim());
+    }
+
     }
 
 }

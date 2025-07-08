@@ -11,6 +11,8 @@ using SchoolManager.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using BCrypt.Net;
 using SchoolManager.Middleware;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +21,26 @@ builder.Services.AddControllersWithViews();
 
 // Conexión a la base de datos PostgreSQL
 builder.Services.AddDbContext<SchoolDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    
+    // Configurar Entity Framework para manejar DateTime automáticamente
+    options.ConfigureWarnings(warnings => warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.RowLimitingOperationWithoutOrderByWarning));
+});
 
+// Configurar MVC para usar los convertidores JSON personalizados
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        options.JsonSerializerOptions.Converters.Add(new DateTimeJsonConverter());
+        options.JsonSerializerOptions.Converters.Add(new NullableDateTimeJsonConverter());
+    })
+    .AddMvcOptions(options =>
+    {
+        // Agregar filtro global para conversión de DateTime
+        options.Filters.Add<SchoolManager.Attributes.DateTimeConversionAttribute>();
+    });
 
 // Registrando todos los servicios con inyección de dependencias
 builder.Services.AddScoped<ISchoolService, SchoolService>();
@@ -51,6 +71,7 @@ builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
 builder.Services.AddScoped<ISubjectAssignmentService, SubjectAssignmentService>();
 builder.Services.AddScoped<IDirectorService, DirectorService>();
+builder.Services.AddScoped<ISuperAdminService, SuperAdminService>();
 
 // Agregar servicios de autenticación
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -63,16 +84,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
+// Agregar configuración de autorización
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("SuperAdmin", policy => policy.RequireRole("SuperAdmin"));
+    options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("Teacher", policy => policy.RequireRole("Teacher"));
+    options.AddPolicy("Student", policy => policy.RequireRole("Student"));
+});
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IMenuService, MenuService>();
-
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-    });
 
 // Código temporal para generar hash de contraseña
 var password = "Admin123!";
@@ -90,6 +114,9 @@ if (!app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// Agregar middleware global para DateTime
+app.UseMiddleware<DateTimeMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();

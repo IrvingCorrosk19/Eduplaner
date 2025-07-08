@@ -134,7 +134,7 @@ public class AttendanceService : IAttendanceService
                 GradeId = dto.GradeId,
                 Date = dto.Date,
                 Status = dto.Status,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                CreatedAt = DateTime.UtcNow
             };
             _context.Attendances.Add(attendance);
         }

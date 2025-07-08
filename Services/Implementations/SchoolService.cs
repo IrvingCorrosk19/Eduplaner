@@ -1,13 +1,16 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Services.Interfaces;
 
 public class SchoolService : ISchoolService
 {
     private readonly SchoolDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SchoolService(SchoolDbContext context)
+    public SchoolService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<School>> GetAllAsync() =>

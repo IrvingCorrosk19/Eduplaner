@@ -21,11 +21,15 @@ public partial class SubjectAssignment
 
     public string? Status { get; set; }
 
+    public Guid? SchoolId { get; set; }
+
     public virtual Area Area { get; set; } = null!;
 
     public virtual GradeLevel GradeLevel { get; set; } = null!;
 
     public virtual Group Group { get; set; } = null!;
+
+    public virtual School? School { get; set; }
 
     public virtual Specialty Specialty { get; set; } = null!;
 

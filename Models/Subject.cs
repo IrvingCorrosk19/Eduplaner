@@ -19,7 +19,11 @@ public partial class Subject
 
     public DateTime? CreatedAt { get; set; }
 
+    public Guid? AreaId { get; set; }
+
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    public virtual Area? Area { get; set; }
 
     public virtual ICollection<DisciplineReport> DisciplineReports { get; set; } = new List<DisciplineReport>();
 

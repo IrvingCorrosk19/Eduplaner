@@ -263,34 +263,87 @@ namespace SchoolManager.Controllers
             return Json(new { success = true, message = "Asignaciones actualizadas correctamente." });
         }
         [HttpPost]
+        private async Task<Guid?> GetCurrentUserSchoolId()
+        {
+            try
+            {
+                // Obtener el usuario actual desde el contexto de autenticación
+                var userEmail = User.Identity?.Name;
+                if (string.IsNullOrEmpty(userEmail))
+                {
+                    Console.WriteLine("[GetCurrentUserSchoolId] No se pudo obtener el email del usuario actual");
+                    return null;
+                }
+
+                var currentUser = await _userService.GetByEmailAsync(userEmail);
+                return currentUser?.SchoolId;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GetCurrentUserSchoolId] Error: {ex.Message}");
+                return null;
+            }
+        }
+
+        [HttpPost]
         public async Task<IActionResult> SaveAssignments([FromBody] List<StudentAssignmentInputModel> asignaciones)
         {
             if (asignaciones == null || asignaciones.Count == 0)
                 return BadRequest(new { success = false, message = "No se recibieron asignaciones." });
 
- 
-
             int insertadas = 0;
             int duplicadas = 0;
+            int estudiantesCreados = 0;
             var errores = new List<string>();
 
             foreach (var item in asignaciones)
             {
                 try
                 {
+                    Console.WriteLine($"[SaveAssignments] Procesando: {item.Estudiante} - {item.Grado} - {item.Grupo}");
+                    
+                    // Buscar o crear el estudiante
                     var student = await _userService.GetByEmailAsync(item.Estudiante);
+                    if (student == null)
+                    {
+                        Console.WriteLine($"[SaveAssignments] Estudiante no encontrado, creando: {item.Estudiante}");
+                        
+                        // Crear el estudiante automáticamente
+                        var newStudent = new User
+                        {
+                            Id = Guid.NewGuid(),
+                            Email = item.Estudiante,
+                            Name = item.Estudiante.Split('@')[0], // Usar la parte antes del @ como nombre
+                            LastName = "",
+                            Role = "estudiante",
+                            Status = "active",
+                            CreatedAt = DateTime.UtcNow,
+                            SchoolId = await GetCurrentUserSchoolId(),
+                            PasswordHash = "123456" // Contraseña temporal por defecto
+                        };
+                        
+                        await _userService.CreateAsync(newStudent, new List<Guid>(), new List<Guid>());
+                        student = newStudent;
+                        estudiantesCreados++;
+                        
+                        Console.WriteLine($"[SaveAssignments] Estudiante creado con ID: {student.Id}");
+                    }
+
                     var grade = await _gradeLevelService.GetByNameAsync(item.Grado);
                     var group = await _groupService.GetByNameAndGradeAsync(item.Grupo);
 
-                    if (student == null || grade == null || group == null)
+                    if (grade == null || group == null)
                     {
-                        errores.Add($"Error de datos: {item.Estudiante} - {item.Grado} - {item.Grupo}");
+                        errores.Add($"Error de datos: {item.Estudiante} - {item.Grado} - {item.Grupo} (Grado o Grupo no encontrado)");
                         continue;
                     }
 
+                    Console.WriteLine($"[SaveAssignments] Verificando si existe asignación: StudentId={student.Id}, GradeId={grade.Id}, GroupId={group.Id}");
+                    
                     bool exists = await _studentAssignmentService.ExistsAsync(student.Id, grade.Id, group.Id);
                     if (exists)
                     {
+                        Console.WriteLine($"[SaveAssignments] Asignación ya existe, saltando");
                         duplicadas++;
                         continue;
                     }
@@ -304,11 +357,15 @@ namespace SchoolManager.Controllers
                         CreatedAt = DateTime.UtcNow
                     };
 
+                    Console.WriteLine($"[SaveAssignments] Creando nueva asignación");
                     await _studentAssignmentService.InsertAsync(assignment);
                     insertadas++;
+                    Console.WriteLine($"[SaveAssignments] Asignación creada exitosamente");
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"[SaveAssignments] Excepción en {item.Estudiante}: {ex.Message}");
+                    Console.WriteLine($"[SaveAssignments] StackTrace: {ex.StackTrace}");
                     errores.Add($"Excepción en {item.Estudiante}: {ex.Message}");
                 }
             }
@@ -318,6 +375,7 @@ namespace SchoolManager.Controllers
                 success = true,
                 insertadas,
                 duplicadas,
+                estudiantesCreados,
                 errores,
                 message = "Carga masiva completada."
             });

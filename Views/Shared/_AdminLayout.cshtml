@@ -3,6 +3,7 @@
     Layout = null;
     var userName = User.Identity?.Name ?? "Usuario";
     var userRole = (await CurrentUserService.GetCurrentUserRoleAsync())?.ToLower() ?? "";
+    var userSchool = await CurrentUserService.GetCurrentUserSchoolAsync();
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -52,8 +53,15 @@
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="/" class="brand-link">
-                <img src="~/img/logo.png" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">School Manager</span>
+                @if (userSchool != null && !string.IsNullOrEmpty(userSchool.LogoUrl))
+                {
+                    <img src="/File/GetSchoolLogo?logoUrl=@userSchool.LogoUrl" alt="Logo de @userSchool.Name" class="brand-image img-circle elevation-3" style="opacity: .8">
+                }
+                else
+                {
+                    <img src="~/img/logo.png" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
+                }
+                <span class="brand-text font-weight-light">@(userSchool?.Name ?? "School Manager")</span>
             </a>
 
             <!-- Sidebar -->

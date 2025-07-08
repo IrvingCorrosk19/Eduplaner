@@ -1,13 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SchoolManager.Models;
+using SchoolManager.Services.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Linq;
 
+namespace SchoolManager.Services.Implementations
+{
 public class GradeLevelService : IGradeLevelService
 {
     private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-    public GradeLevelService(SchoolDbContext context)
+        public GradeLevelService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+            _currentUserService = currentUserService;
     }
     public async Task<GradeLevel?> GetByNameAsync(string name)
     {
@@ -24,7 +33,7 @@ public class GradeLevelService : IGradeLevelService
             {
                 Id = Guid.NewGuid(),
                 Name = name,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                CreatedAt = DateTime.UtcNow
             };
             _context.GradeLevels.Add(grade);
             await _context.SaveChangesAsync();
@@ -85,6 +94,7 @@ public class GradeLevelService : IGradeLevelService
         catch (Exception ex)
         {
             throw new Exception("Error al eliminar el grado académico", ex);
+            }
         }
     }
 }

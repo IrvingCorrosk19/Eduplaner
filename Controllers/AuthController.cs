@@ -44,6 +44,12 @@ namespace SchoolManager.Controllers
 
             TempData["Success"] = "¡Bienvenido " + user.Name + "!";
 
+            // Redirigir según el rol del usuario
+            if (user.Role.ToLower() == "superadmin")
+            {
+                return RedirectToAction("Index", "SuperAdmin");
+            }
+
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
@@ -58,6 +64,14 @@ namespace SchoolManager.Controllers
             await _authService.LogoutAsync();
             TempData["Success"] = "Sesión cerrada correctamente";
             return RedirectToAction("Login");
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult AccessDenied(string returnUrl = null)
+        {
+            ViewData["ReturnUrl"] = returnUrl;
+            return View();
         }
     }
 } 

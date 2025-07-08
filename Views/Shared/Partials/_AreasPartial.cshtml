@@ -2,7 +2,9 @@
 
 <div class="card card-outline card-primary">
     <div class="card-header">
-        <h5 class="card-title fw-bold fs-3"><i class="bi bi-diagram-3 text-primary me-2"></i>Gestión de Áreas</h5>
+        <h5 class="card-title fw-bold fs-3">
+            <i class="bi bi-diagram-3 text-primary me-2"></i>Gestión de Áreas
+        </h5>
     </div>
     <div class="card-body">
         <div class="search-bar">
@@ -18,38 +20,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (!Model.Any())
+                    @foreach (var area in Model ?? Enumerable.Empty<SchoolManager.Models.Area>())
                     {
-                        <tr>
-                            <td colspan="3" class="text-center text-muted">No hay áreas registradas.</td>
+                        <tr data-id="@area.Id">
+                            <td class="align-middle text-center">
+                                <span class="area-name-text">@area.Name</span>
+                                <input type="text" class="form-control d-none area-name-input" value="@area.Name" />
+                            </td>
+                            <td class="align-middle text-center">
+                                <span class="area-description-text">@area.Description</span>
+                                <textarea class="form-control d-none area-description-input">@area.Description</textarea>
+                            </td>
+                            <td class="align-middle text-center">
+                                <button class="btn btn-action btn-edit me-1 btn-edit-area" title="Editar">
+                                    <i class="bi bi-pencil me-1"></i> Editar
+                                </button>
+                                <button class="btn btn-action btn-save d-none me-1 btn-save-area" title="Guardar">
+                                    <i class="bi bi-check me-1"></i> Guardar
+                                </button>
+                                <button class="btn btn-action btn-delete btn-delete-area" title="Eliminar">
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                </button>
+                            </td>
                         </tr>
-                    }
-                    else
-                    {
-                        foreach (var area in Model)
-                        {
-                            <tr data-id="@area.Id">
-                                <td class="align-middle text-center">
-                                    <span class="area-name-text">@area.Name</span>
-                                    <input type="text" class="form-control d-none area-name-input" value="@area.Name" />
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="area-description-text">@area.Description</span>
-                                    <textarea class="form-control d-none area-description-input">@area.Description</textarea>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <button class="btn btn-action btn-edit me-1 btn-edit-area" title="Editar">
-                                        <i class="bi bi-pencil me-1"></i> Editar
-                                    </button>
-                                    <button class="btn btn-action btn-save d-none me-1 btn-save-area" title="Guardar">
-                                        <i class="bi bi-check me-1"></i> Guardar
-                                    </button>
-                                    <button class="btn btn-action btn-delete btn-delete-area" title="Eliminar">
-                                        <i class="bi bi-trash me-1"></i> Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>

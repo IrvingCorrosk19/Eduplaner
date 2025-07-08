@@ -11,9 +11,7 @@ public partial class DisciplineReport
 
     public Guid? TeacherId { get; set; }
 
-    public DateOnly Date { get; set; }
-
-    public TimeOnly? Hora { get; set; }
+    public DateTime Date { get; set; }
 
     public string? ReportType { get; set; }
 
@@ -21,7 +19,9 @@ public partial class DisciplineReport
 
     public string? Status { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
 
     public Guid? SubjectId { get; set; }
 

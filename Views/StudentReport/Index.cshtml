@@ -157,7 +157,7 @@
                                         <td>@grade.Subject</td>
                                         <td>@grade.ActivityName</td>
                                         <td>@grade.Teacher</td>
-                                        <td>@grade.Value.ToString("0.0")</td>
+                                        <td>@(grade.Value.HasValue ? grade.Value.Value.ToString("0.0") : "-")</td>
                                         <td>
                                             @if (!string.IsNullOrEmpty(grade.FileUrl))
                                             {
@@ -177,7 +177,7 @@
                         <tfoot>
                             <tr>
                                 <td colspan="3"><strong>Promedio General</strong></td>
-                                <td id="grades-average">@(Model.Grades.Any() ? Model.Grades.Average(g => g.Value).ToString("0.0") : "0.0")</td>
+                                <td id="grades-average">@(Model.Grades.Any() ? Model.Grades.Where(g => g.Value.HasValue).Average(g => g.Value.Value).ToString("0.0") : "0.0")</td>
                                 <td></td>
                             </tr>
                         </tfoot>

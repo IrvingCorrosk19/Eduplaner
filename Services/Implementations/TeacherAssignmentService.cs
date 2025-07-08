@@ -60,8 +60,8 @@ public class TeacherAssignmentService : ITeacherAssignmentService
             Id = Guid.NewGuid(),
             TeacherId = teacherId,
             SubjectAssignmentId = subjectAssignmentId,
-            // Convertir el DateTime en 'Unspecified' para que encaje con 'timestamp without time zone'
-            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+            // Convertir el DateTime en UTC para que encaje con 'timestamp with time zone'
+            CreatedAt = DateTime.UtcNow
         };
 
         _context.TeacherAssignments.Add(newAssignment);

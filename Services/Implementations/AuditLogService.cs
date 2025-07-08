@@ -1,13 +1,16 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Services.Interfaces;
 
 public class AuditLogService : IAuditLogService
 {
     private readonly SchoolDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public AuditLogService(SchoolDbContext context)
+    public AuditLogService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
     public async Task<List<AuditLog>> GetAllAsync() =>

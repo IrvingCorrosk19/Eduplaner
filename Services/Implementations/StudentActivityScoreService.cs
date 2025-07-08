@@ -6,19 +6,29 @@ using Microsoft.EntityFrameworkCore;
 using SchoolManager.Dtos;
 using SchoolManager.Interfaces;
 using SchoolManager.Models;
+using SchoolManager.Services.Interfaces;
 
 namespace SchoolManager.Services
 {
     public class StudentActivityScoreService : IStudentActivityScoreService
     {
         private readonly SchoolDbContext _context;
-        public StudentActivityScoreService(SchoolDbContext context) => _context = context;
+        private readonly ITrimesterService _trimesterService;
 
-        /* ------------ 1. Guardar / actualizar notas ------------ */
+        public StudentActivityScoreService(SchoolDbContext context, ITrimesterService trimesterService)
+        {
+            _context = context;
+            _trimesterService = trimesterService;
+        }
+
+        /* ------------ 1. Guardar / actualizar notas ------------ */
         public async Task SaveAsync(IEnumerable<StudentActivityScoreCreateDto> scores)
         {
             foreach (var dto in scores)
             {
+                // Validar trimestre activo
+                await _trimesterService.ValidateTrimesterActiveAsync(dto.Trimester);
+
                 var entity = await _context.StudentActivityScores
                     .FirstOrDefaultAsync(s => s.StudentId == dto.StudentId &&
                                               s.ActivityId == dto.ActivityId);
@@ -42,7 +52,7 @@ namespace SchoolManager.Services
             await _context.SaveChangesAsync();
         }
 
-        /* ------------ 2. Libro de calificaciones pivotado ------------ */
+        /* ------------ 2. Libro de calificaciones pivotado ------------ */
         public async Task<GradeBookDto> GetGradeBookAsync(Guid teacherId, Guid groupId, string trimesterCode)
         {
             /* 2.1 Cabeceras: actividades del docente en ese grupo y trimestre */
@@ -66,8 +76,8 @@ namespace SchoolManager.Services
             foreach (var h in headers)
             {
                 h.Date = h.Date.HasValue
-                    ? DateTime.SpecifyKind(h.Date.Value, DateTimeKind.Unspecified)
-                    : DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+                    ? h.Date.Value.ToUniversalTime()
+                    : DateTime.UtcNow;
             }
 
             var activityIds = headers.Select(h => h.Id).ToList();
@@ -111,7 +121,6 @@ namespace SchoolManager.Services
             return new GradeBookDto { Activities = headers, Rows = rows };
         }
 
-
         public async Task SaveBulkFromNotasAsync(List<StudentActivityScoreCreateDto> registros)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -119,14 +128,17 @@ namespace SchoolManager.Services
             {
                 foreach (var dto in registros)
                 {
+                    // Validar trimestre activo antes de procesar
+                    await _trimesterService.ValidateTrimesterActiveAsync(dto.Trimester);
+
                     // Buscar o crear la actividad por nombre, docente, grupo, trimestre y grado
                     var activity = await _context.Activities
                         .FirstOrDefaultAsync(a =>
                             a.Name == dto.ActivityName &&
                             a.TeacherId == dto.TeacherId &&
                             a.Trimester == dto.Trimester &&
-                             a.SubjectId == dto.SubjectId &&
-                             a.GroupId == dto.GroupId &&
+                            a.SubjectId == dto.SubjectId &&
+                            a.GroupId == dto.GroupId &&
                             a.GradeLevelId == dto.GradeLevelId &&
                             a.Type == dto.Type);
 
@@ -143,7 +155,7 @@ namespace SchoolManager.Services
                             GroupId = dto.GroupId,
                             GradeLevelId = dto.GradeLevelId,
                             Trimester = dto.Trimester,
-                            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                            CreatedAt = DateTime.UtcNow
                         };
 
                         _context.Activities.Add(activity);
@@ -158,19 +170,19 @@ namespace SchoolManager.Services
 
                     if (existing == null)
                     {
-                        // Si no existe, lo añadimos
+                        // Si no existe, lo añadimos (incluso si la nota es nula)
                         _context.StudentActivityScores.Add(new StudentActivityScore
                         {
                             Id = Guid.NewGuid(),
                             StudentId = dto.StudentId,
                             ActivityId = activity.Id,
-                            Score = dto.Score,
-                            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                            Score = dto.Score, // Puede ser nulo
+                            CreatedAt = DateTime.UtcNow
                         });
                     }
                     else
                     {
-                        // Si ya existe, actualizamos la nota
+                        // Si ya existe, actualizamos la nota (puede ser nula)
                         existing.Score = dto.Score;
                     }
                 }
@@ -219,7 +231,7 @@ namespace SchoolManager.Services
                     {
                         Tipo = n.Activity.Type,
                         Actividad = n.Activity.Name,
-                        Nota = n.Score.ToString("0.00")
+                        Nota = n.Score.HasValue ? n.Score.Value.ToString("0.00") : ""
                     }).ToList()
                 })
                 .ToList();
@@ -229,7 +241,16 @@ namespace SchoolManager.Services
 
         public async Task<List<PromedioFinalDto>> GetPromediosFinalesAsync(GetNotesDto notes)
         {
-            // Obtener todas las notas del grupo y materia incluyendo el tipo de actividad
+            // 1. Obtener todos los estudiantes del grupo y grado usando solo User y StudentAssignment
+            var students = await _context.StudentAssignments
+                .Where(sa => sa.GroupId == notes.GroupId && sa.GradeId == notes.GradeLevelId)
+                .Join(_context.Users,
+                    sa => sa.StudentId,
+                    u => u.Id,
+                    (sa, u) => new { u.Id, u.Name, u.LastName })
+                .ToListAsync();
+
+            // 2. Obtener todas las notas del grupo y materia incluyendo el tipo de actividad
             var notasPorTrimestre = await _context.StudentActivityScores
                 .Join(_context.Activities,
                     score => score.ActivityId,
@@ -242,65 +263,49 @@ namespace SchoolManager.Services
                         ActivityType = activity.Type,
                         SubjectId = activity.SubjectId,
                         GroupId = activity.GroupId,
-                        GradeLevelId = activity.GradeLevelId
+                        GradeLevelId = activity.GradeLevelId,
+                        TeacherId = activity.TeacherId
                     })
                 .Where(x => x.SubjectId == notes.SubjectId &&
                            x.GroupId == notes.GroupId &&
-                           x.GradeLevelId == notes.GradeLevelId)
+                           x.GradeLevelId == notes.GradeLevelId &&
+                           x.TeacherId == notes.TeacherId)
                 .ToListAsync();
 
-            // Obtener información de los estudiantes
-            var studentIds = notasPorTrimestre.Select(x => x.StudentId).Distinct();
-            var students = await _context.Users
-                .Where(u => studentIds.Contains(u.Id))
-                .OrderBy(u => u.Name)  // Ordenar por nombre
-                .Select(u => new { u.Id, u.Name })
-                .ToListAsync();
+            // 3. Usar siempre los tres trimestres estándar
+            var trimestres = new List<string> { "1T", "2T", "3T" };
 
-            // Agrupar por estudiante
-            var promedios = students.Select(student =>
+            // 4. Construir la lista de promedios por estudiante y trimestre
+            var promedios = new List<PromedioFinalDto>();
+            foreach (var student in students)
             {
-                var promediosPorTrimestre = notasPorTrimestre
-                    .Where(n => n.StudentId == student.Id)
-                    .GroupBy(n => n.Trimester)
-                    .ToDictionary(
-                        g => g.Key,
-                        g =>
-                        {
-                            // Calcular promedio por tipo de actividad
-                            var promediosPorTipo = g.GroupBy(n => n.ActivityType)
-                                .Select(t => t.Average(n => n.Score))
-                                .ToList();
-
-                            // Promedio final del trimestre (promedio de los promedios por tipo)
-                            return promediosPorTipo.Any() 
-                                ? Math.Floor(promediosPorTipo.Average() * 10) / 10 
-                                : 0.0m;
-                        });
-
-                var promedioFinal = promediosPorTrimestre.Any()
-                    ? Math.Floor(promediosPorTrimestre.Values.Average() * 10) / 10
-                    : 0.0m;
-
-                return new PromedioFinalDto
+                foreach (var trimestre in trimestres)
                 {
-                    StudentId = student.Id.ToString(),
-                    StudentFullName = student.Name,
-                    Promedios = promediosPorTrimestre,
-                    PromedioFinal = promedioFinal,
-                    Estado = promedioFinal >= 3.0m ? "Aprobado" : "Reprobado"
-                };
-            }).ToList();
+                    var notasEstudianteTrimestre = notasPorTrimestre
+                        .Where(x => x.StudentId == student.Id && x.Trimester == trimestre)
+                        .ToList();
+
+                    var notasValidas = notasEstudianteTrimestre.Where(x => x.Score.HasValue).ToList();
+
+                    promedios.Add(new PromedioFinalDto
+                    {
+                        StudentId = student.Id.ToString(),
+                        StudentFullName = $"{student.Name} {student.LastName}",
+                        Trimester = trimestre,
+                        PromedioTareas = notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "tarea" && x.Score.HasValue)
+                            .Any() ? notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "tarea" && x.Score.HasValue).Average(x => x.Score.Value) : null,
+                        PromedioParciales = notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "parcial" && x.Score.HasValue)
+                            .Any() ? notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "parcial" && x.Score.HasValue).Average(x => x.Score.Value) : null,
+                        PromedioExamenes = notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "examen" && x.Score.HasValue)
+                            .Any() ? notasEstudianteTrimestre.Where(x => x.ActivityType.ToLower() == "examen" && x.Score.HasValue).Average(x => x.Score.Value) : null,
+                        NotaFinal = notasValidas.Any() ? notasValidas.Average(x => x.Score.Value) : null,
+                        Estado = notasValidas.Any() ? (notasValidas.Average(x => x.Score.Value) >= 3.0m ? "Aprobado" : "Reprobado") : "Sin calificar"
+                    });
+                }
+            }
 
             return promedios;
         }
-
     }
-
-
-
-
-
-
 }
 

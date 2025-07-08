@@ -17,14 +17,22 @@ namespace SchoolManager.Services.Implementations
         private readonly ISubjectService _subjectService;
         private readonly ITrimesterService _trimesterService;
         private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public DirectorService(IUserService userService, IStudentReportService studentReportService, ISubjectService subjectService, ITrimesterService trimesterService, SchoolDbContext context)
+        public DirectorService(
+            IUserService userService, 
+            IStudentReportService studentReportService, 
+            ISubjectService subjectService, 
+            ITrimesterService trimesterService, 
+            SchoolDbContext context,
+            ICurrentUserService currentUserService)
         {
             _userService = userService;
             _studentReportService = studentReportService;
             _subjectService = subjectService;
             _trimesterService = trimesterService;
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<DirectorViewModel> GetDashboardViewModelAsync(string trimestre = null)

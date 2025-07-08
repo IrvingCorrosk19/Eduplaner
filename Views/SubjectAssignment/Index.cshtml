@@ -108,8 +108,13 @@
     </div>
 
     <div class="card card-primary card-outline">
-        <div class="card-header">
-            <i class="bi bi-journal-bookmark-fill me-2"></i> Asignaciones Actuales
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="bi bi-journal-bookmark-fill me-2"></i> Asignaciones Actuales
+            </div>
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createModal">
+                <i class="bi bi-plus-circle me-2"></i> Crear Asignación
+            </button>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -214,6 +219,73 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Creación -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="createModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="createModalLabel">Crear Nueva Asignación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createAssignmentForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createSpecialtyId" class="form-label">Especialidad</label>
+                                <select class="form-control" id="createSpecialtyId" name="SpecialtyId" required>
+                                    <option value="">Seleccione una especialidad</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createAreaId" class="form-label">Área</label>
+                                <select class="form-control" id="createAreaId" name="AreaId" required>
+                                    <option value="">Seleccione un área</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createSubjectId" class="form-label">Materia</label>
+                                <select class="form-control" id="createSubjectId" name="SubjectId" required>
+                                    <option value="">Seleccione una materia</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createGradeLevelId" class="form-label">Grado</label>
+                                <select class="form-control" id="createGradeLevelId" name="GradeLevelId" required>
+                                    <option value="">Seleccione un grado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="createGroupId" class="form-label">Grupo</label>
+                                <select class="form-control" id="createGroupId" name="GroupId" required>
+                                    <option value="">Seleccione un grupo</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-success" id="btnCreateAssignment">Crear Asignación</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -252,32 +324,6 @@
           Variables globales
         ----------------------------------*/
         let currentAssignmentId = null;
-        window.allAssignments = [];      // Datos completos para la asignación
-
-        /*----------------------------------
-          Helpers
-        ----------------------------------*/
-        const distinct = (arr, key) => [...new Map(arr.map(o => [o[key], o])).values()]; // Filtrar valores únicos
-        const opts = (list, idKey, nameKey, sel) => // Función para generar las opciones del select
-            '<option value="">-- Seleccione --</option>' +
-            list.map(o => `<option value="${o[idKey]}" ${o[idKey] === sel ? 'selected' : ''}>${o[nameKey]}</option>`).join("");
-
-        function loadDropdowns(assignmentId) {
-            // Filtra los datos globales según el ID de la asignación
-            const currentAssignment = window.allAssignments.find(a => a.id === assignmentId);
-            const spList = distinct(window.allAssignments, "specialtyId");
-            const areaList = currentAssignment ? distinct(window.allAssignments.filter(a => a.specialtyId === currentAssignment.specialtyId), "areaId") : [];
-            const subjectList = currentAssignment && currentAssignment.areaId ? distinct(window.allAssignments.filter(a => a.specialtyId === currentAssignment.specialtyId && a.areaId === currentAssignment.areaId), "subjectId") : [];
-            const gradeList = currentAssignment && currentAssignment.subjectId ? distinct(window.allAssignments.filter(a => a.specialtyId === currentAssignment.specialtyId && a.areaId === currentAssignment.areaId && a.subjectId === currentAssignment.subjectId), "gradeLevelId") : [];
-            const groupList = currentAssignment && currentAssignment.gradeLevelId ? distinct(window.allAssignments.filter(a => a.specialtyId === currentAssignment.specialtyId && a.areaId === currentAssignment.areaId && a.subjectId === currentAssignment.subjectId && a.gradeLevelId === currentAssignment.gradeLevelId), "groupId") : [];
-
-            // Poblamos los dropdowns
-            $('#specialtyId').html(opts(spList, 'specialtyId', 'specialtyName', currentAssignment?.specialtyId));
-            $('#areaId').html(opts(areaList, 'areaId', 'areaName', currentAssignment?.areaId));
-            $('#subjectId').html(opts(subjectList, 'subjectId', 'subjectName', currentAssignment?.subjectId));
-            $('#gradeLevelId').html(opts(gradeList, 'gradeLevelId', 'gradeLevelName', currentAssignment?.gradeLevelId));
-            $('#groupId').html(opts(groupList, 'groupId', 'groupName', currentAssignment?.groupId));
-        }
 
         /*----------------------------------
           Cargar asignación actual
@@ -286,58 +332,78 @@
             const btn = $(e.relatedTarget);
             currentAssignmentId = btn.data('assignment-id');
 
-            // Cargar la lista completa de asignaciones (idealmente ya la tendrías disponible en la página)
-            $.get('@Url.Action("GetAllAssignments", "SubjectAssignment")', function(response) {
+            // Cargar datos de dropdowns y luego cargar la asignación actual
+            $.get('@Url.Action("GetDropdownData", "SubjectAssignment")', function(response) {
                 if (response.success) {
-                    window.allAssignments = response.assignments; // Asumimos que 'assignments' es la lista completa
-                    loadDropdowns(currentAssignmentId); // Cargar los dropdowns con los valores correctos
+                    // Poblar dropdowns con todos los datos disponibles
+                    $('#specialtyId').html('<option value="">Seleccione una especialidad</option>' + 
+                        response.specialties.map(s => `<option value="${s.id}">${s.name}</option>`).join(''));
+                    $('#areaId').html('<option value="">Seleccione un área</option>' + 
+                        response.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join(''));
+                    $('#subjectId').html('<option value="">Seleccione una materia</option>' + 
+                        response.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join(''));
+                    $('#gradeLevelId').html('<option value="">Seleccione un grado</option>' + 
+                        response.gradeLevels.map(g => `<option value="${g.id}">${g.name}</option>`).join(''));
+                    $('#groupId').html('<option value="">Seleccione un grupo</option>' + 
+                        response.groups.map(g => `<option value="${g.id}">${g.name}</option>`).join(''));
+
+                    // Ahora cargar los valores actuales de la asignación
+                    loadCurrentAssignmentValues(currentAssignmentId);
                 } else {
-                    Swal.fire('Error', 'No se pudieron cargar las asignaciones', 'error');
+                    Swal.fire('Error', response.message, 'error');
                 }
             });
         });
 
+        // Función para cargar los valores actuales de la asignación
+        function loadCurrentAssignmentValues(assignmentId) {
+            // Obtener los datos actuales de la asignación desde la tabla
+            const row = $(`tr[data-assignment-id="${assignmentId}"]`);
+            if (row.length > 0) {
+                const specialtyName = row.find('td:eq(1)').text().trim();
+                const areaName = row.find('td:eq(2)').text().trim();
+                const subjectName = row.find('td:eq(3)').text().trim();
+                const gradeLevelName = row.find('td:eq(5)').text().trim();
+                const groupName = row.find('td:eq(6)').text().trim();
+
+                // Seleccionar los valores correctos en los dropdowns
+                $('#specialtyId option').each(function() {
+                    if ($(this).text().trim() === specialtyName) {
+                        $(this).prop('selected', true);
+                    }
+                });
+
+                $('#areaId option').each(function() {
+                    if ($(this).text().trim() === areaName) {
+                        $(this).prop('selected', true);
+                    }
+                });
+
+                $('#subjectId option').each(function() {
+                    if ($(this).text().trim() === subjectName) {
+                        $(this).prop('selected', true);
+                    }
+                });
+
+                $('#gradeLevelId option').each(function() {
+                    if ($(this).text().trim() === gradeLevelName) {
+                        $(this).prop('selected', true);
+                    }
+                });
+
+                $('#groupId option').each(function() {
+                    if ($(this).text().trim() === groupName) {
+                        $(this).prop('selected', true);
+                    }
+                });
+            }
+        }
+
         /*----------------------------------
-          Cascada local (sin llamadas extra)
+          Cascada para el modal de editar (opcional - mantener todos los datos disponibles)
         ----------------------------------*/
-        $(document).on('change', '#specialtyId', function() {
-            const specialtyId = $(this).val();
-            const areaList = distinct(window.allAssignments.filter(a => a.specialtyId === specialtyId), "areaId");
-            $('#areaId').html(opts(areaList, 'areaId', 'areaName'));
-
-            // Limpiar otros selects
-            $('#subjectId, #gradeLevelId, #groupId').html('<option value="">-- Seleccione --</option>');
-        });
-
-        $(document).on('change', '#areaId', function() {
-            const specialtyId = $('#specialtyId').val();
-            const areaId = $(this).val();
-            const subjectList = distinct(window.allAssignments.filter(a => a.specialtyId === specialtyId && a.areaId === areaId), "subjectId");
-            $('#subjectId').html(opts(subjectList, 'subjectId', 'subjectName'));
-
-            // Limpiar los demás selects
-            $('#gradeLevelId, #groupId').html('<option value="">-- Seleccione --</option>');
-        });
-
-        $(document).on('change', '#subjectId', function() {
-            const specialtyId = $('#specialtyId').val();
-            const areaId = $('#areaId').val();
-            const subjectId = $(this).val();
-            const gradeList = distinct(window.allAssignments.filter(a => a.specialtyId === specialtyId && a.areaId === areaId && a.subjectId === subjectId), "gradeLevelId");
-            $('#gradeLevelId').html(opts(gradeList, 'gradeLevelId', 'gradeLevelName'));
-
-            // Limpiar el grupo
-            $('#groupId').html('<option value="">-- Seleccione --</option>');
-        });
-
-        $(document).on('change', '#gradeLevelId', function() {
-            const specialtyId = $('#specialtyId').val();
-            const areaId = $('#areaId').val();
-            const subjectId = $('#subjectId').val();
-            const gradeLevelId = $(this).val();
-            const groupList = distinct(window.allAssignments.filter(a => a.specialtyId === specialtyId && a.areaId === areaId && a.subjectId === subjectId && a.gradeLevelId === gradeLevelId), "groupId");
-            $('#groupId').html(opts(groupList, 'groupId', 'groupName'));
-        });
+        // Los dropdowns del modal de editar mantienen todos los datos disponibles
+        // No necesitamos cascada porque todos los datos están cargados
 
                     /*----------------------------------
                       Guardar cambios
@@ -394,6 +460,123 @@
                     }
              });
 
+        });
+
+        /*----------------------------------
+          Funcionalidad de Creación
+        ----------------------------------*/
+        
+        // Cargar datos de dropdowns al abrir el modal de creación
+        $('#createModal').on('show.bs.modal', function (e) {
+            // Limpiar formulario
+            $('#createAssignmentForm')[0].reset();
+            
+            // Cargar datos de dropdowns
+            $.get('@Url.Action("GetDropdownData", "SubjectAssignment")', function(response) {
+                if (response.success) {
+                    // Poblar dropdowns
+                    $('#createSpecialtyId').html('<option value="">Seleccione una especialidad</option>' + 
+                        response.specialties.map(s => `<option value="${s.id}">${s.name}</option>`).join(''));
+                    $('#createAreaId').html('<option value="">Seleccione un área</option>' + 
+                        response.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join(''));
+                    $('#createSubjectId').html('<option value="">Seleccione una materia</option>' + 
+                        response.subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join(''));
+                    $('#createGradeLevelId').html('<option value="">Seleccione un grado</option>' + 
+                        response.gradeLevels.map(g => `<option value="${g.id}">${g.name}</option>`).join(''));
+                    $('#createGroupId').html('<option value="">Seleccione un grupo</option>' + 
+                        response.groups.map(g => `<option value="${g.id}">${g.name}</option>`).join(''));
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+            });
+        });
+
+        // Crear asignación
+        $('#btnCreateAssignment').on('click', function() {
+            const formData = {
+                SpecialtyId: $('#createSpecialtyId').val(),
+                AreaId: $('#createAreaId').val(),
+                SubjectId: $('#createSubjectId').val(),
+                GradeLevelId: $('#createGradeLevelId').val(),
+                GroupId: $('#createGroupId').val()
+            };
+
+            // Validar que todos los campos estén llenos
+            if (!formData.SpecialtyId || !formData.AreaId || !formData.SubjectId || 
+                !formData.GradeLevelId || !formData.GroupId) {
+                Swal.fire({
+                    text: 'Por favor complete todos los campos',
+                    showCancelButton: false,
+                    confirmButtonText: 'Aceptar',
+                    showConfirmButton: true,
+                    icon: 'warning',
+                    customClass: {
+                        title: 'd-none'
+                    }
+                });
+                return;
+            }
+
+            // Mostrar loading
+            Swal.fire({
+                title: 'Creando asignación...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: '@Url.Action("Create", "SubjectAssignment")',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(formData),
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            text: response.message,
+                            showCancelButton: false,
+                            confirmButtonText: 'Aceptar',
+                            showConfirmButton: true,
+                            icon: 'success',
+                            customClass: {
+                                title: 'd-none'
+                            }
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            text: response.message,
+                            showCancelButton: false,
+                            confirmButtonText: 'Aceptar',
+                            showConfirmButton: true,
+                            icon: 'error',
+                            customClass: {
+                                title: 'd-none'
+                            }
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    let errorMessage = 'No se pudo crear la asignación';
+
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+
+                    Swal.fire({
+                        text: errorMessage,
+                        showCancelButton: false,
+                        confirmButtonText: 'Aceptar',
+                        showConfirmButton: true,
+                        icon: 'error',
+                        customClass: {
+                            title: 'd-none'
+                        }
+                    });
+                }
+            });
         });
     </script>
 }

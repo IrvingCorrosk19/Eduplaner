@@ -6,13 +6,20 @@ using Microsoft.EntityFrameworkCore;
 using SchoolManager.Dtos;
 using SchoolManager.Interfaces;
 using SchoolManager.Models;
+using SchoolManager.Services.Interfaces;
 
-namespace SchoolManager.Services
+namespace SchoolManager.Services.Implementations
 {
     public class TeacherGroupService : ITeacherGroupService
     {
         private readonly SchoolDbContext _context;
-        public TeacherGroupService(SchoolDbContext context) => _context = context;
+        private readonly ICurrentUserService _currentUserService;
+
+        public TeacherGroupService(SchoolDbContext context, ICurrentUserService currentUserService)
+        {
+            _context = context;
+            _currentUserService = currentUserService;
+        }
 
         public async Task<IEnumerable<GroupDto>> GetByTeacherAsync(Guid teacherId, string trimesterCode)
         {

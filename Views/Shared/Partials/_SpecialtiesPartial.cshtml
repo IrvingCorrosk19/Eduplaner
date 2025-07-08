@@ -2,7 +2,9 @@
 
 <div class="card card-outline card-primary">
     <div class="card-header">
-        <h5 class="card-title fw-bold fs-3"><i class="bi bi-award text-primary me-2"></i>Gestión de Especialidades</h5>
+        <h5 class="card-title fw-bold fs-3">
+            <i class="bi bi-award text-primary me-2"></i>Gestión de Especialidades
+        </h5>
     </div>
     <div class="card-body">
         <div class="search-bar">
@@ -18,38 +20,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (!Model.Any())
+                    @foreach (var specialty in Model ?? Enumerable.Empty<SchoolManager.Models.Specialty>())
                     {
-                        <tr>
-                            <td colspan="3" class="text-center text-muted">No hay especialidades registradas.</td>
+                        <tr data-id="@specialty.Id">
+                            <td class="align-middle text-center">
+                                <span class="specialty-name-text">@specialty.Name</span>
+                                <input type="text" class="form-control d-none specialty-name-input" value="@specialty.Name" />
+                            </td>
+                            <td class="align-middle text-center">
+                                <span class="specialty-description-text">@specialty.Description</span>
+                                <textarea class="form-control d-none specialty-description-input">@specialty.Description</textarea>
+                            </td>
+                            <td class="align-middle text-center">
+                                <button class="btn btn-action btn-edit me-1 btn-edit-specialty" title="Editar">
+                                    <i class="bi bi-pencil me-1"></i> Editar
+                                </button>
+                                <button class="btn btn-action btn-save d-none me-1 btn-save-specialty" title="Guardar">
+                                    <i class="bi bi-check me-1"></i> Guardar
+                                </button>
+                                <button class="btn btn-action btn-delete btn-delete-specialty" title="Eliminar">
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                </button>
+                            </td>
                         </tr>
-                    }
-                    else
-                    {
-                        foreach (var specialty in Model)
-                        {
-                            <tr data-id="@specialty.Id">
-                                <td class="align-middle text-center">
-                                    <span class="specialty-name-text">@specialty.Name</span>
-                                    <input type="text" class="form-control d-none specialty-name-input" value="@specialty.Name" />
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="specialty-description-text">@specialty.Description</span>
-                                    <textarea class="form-control d-none specialty-description-input">@specialty.Description</textarea>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <button class="btn btn-action btn-edit me-1 btn-edit-specialty" title="Editar">
-                                        <i class="bi bi-pencil me-1"></i> Editar
-                                    </button>
-                                    <button class="btn btn-action btn-save d-none me-1 btn-save-specialty" title="Guardar">
-                                        <i class="bi bi-check me-1"></i> Guardar
-                                    </button>
-                                    <button class="btn btn-action btn-delete btn-delete-specialty" title="Eliminar">
-                                        <i class="bi bi-trash me-1"></i> Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>

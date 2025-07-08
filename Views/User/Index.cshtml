@@ -404,14 +404,24 @@
                                 </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button type="button" class="btn btn-action btn-edit btn-edit-user" data-id="@user.Id" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                        <span>Editar</span>
-                                    </button>
-                                    <button type="button" class="btn btn-action btn-delete btn-delete-user" data-id="@user.Id" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                        <span>Eliminar</span>
-                                    </button>
+                                    @if (user.Role?.ToLower() != "admin")
+                                    {
+                                        <button type="button" class="btn btn-action btn-edit btn-edit-user" data-id="@user.Id" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-action btn-delete btn-delete-user" data-id="@user.Id" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-action btn-edit" disabled title="No se puede editar usuarios administradores">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-action btn-delete" disabled title="No se puede eliminar usuarios administradores">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    }
                                 </div>
                                 </td>
                             </tr>

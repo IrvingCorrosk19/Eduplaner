@@ -1,13 +1,16 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Services.Interfaces;
 
 public class SubjectService : ISubjectService
 {
     private readonly SchoolDbContext _context;
+    private readonly ICurrentUserService _currentUserService;
 
-    public SubjectService(SchoolDbContext context)
+    public SubjectService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+        _currentUserService = currentUserService;
     }
 
 
@@ -46,8 +49,11 @@ public class SubjectService : ISubjectService
         return subject;
     }
 
-    public async Task<List<Subject>> GetAllAsync() =>
-        await _context.Subjects.ToListAsync();
+    public async Task<List<Subject>> GetAllAsync()
+    {    
+
+        return await _context.Subjects.ToListAsync();
+    }
 
     public async Task<Subject?> GetByIdAsync(Guid id) =>
         await _context.Subjects.FindAsync(id);

@@ -2,7 +2,9 @@
 
 <div class="card card-outline card-primary">
     <div class="card-header">
-        <h5 class="card-title fw-bold fs-3"><i class="bi bi-people text-primary me-2"></i>Gestión de Grupos</h5>
+        <h5 class="card-title fw-bold fs-3">
+            <i class="bi bi-people text-primary me-2"></i>Gestión de Grupos
+        </h5>
     </div>
     <div class="card-body">
         <div class="search-bar">
@@ -18,38 +20,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (!Model.Any())
+                    @foreach (var group in Model ?? Enumerable.Empty<SchoolManager.Models.Group>())
                     {
-                        <tr>
-                            <td colspan="3" class="text-center text-muted">No hay grupos registrados.</td>
+                        <tr data-id="@group.Id">
+                            <td class="align-middle text-center">
+                                <span class="group-name-text">@group.Name</span>
+                                <input type="text" class="form-control d-none group-name-input" value="@group.Name" />
+                            </td>
+                            <td class="align-middle text-center">
+                                <span class="group-description-text">@group.Description</span>
+                                <textarea class="form-control d-none group-description-input">@group.Description</textarea>
+                            </td>
+                            <td class="align-middle text-center">
+                                <button class="btn btn-action btn-edit me-1 btn-edit-group" title="Editar">
+                                    <i class="bi bi-pencil me-1"></i> Editar
+                                </button>
+                                <button class="btn btn-action btn-save d-none me-1 btn-save-group" title="Guardar">
+                                    <i class="bi bi-check me-1"></i> Guardar
+                                </button>
+                                <button class="btn btn-action btn-delete btn-delete-group" title="Eliminar">
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                </button>
+                            </td>
                         </tr>
-                    }
-                    else
-                    {
-                        foreach (var group in Model)
-                        {
-                            <tr data-id="@group.Id">
-                                <td class="align-middle text-center">
-                                    <span class="group-name-text">@group.Name</span>
-                                    <input type="text" class="form-control d-none group-name-input" value="@group.Name" />
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="group-description-text">@group.Description</span>
-                                    <textarea class="form-control d-none group-description-input">@group.Description</textarea>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <button class="btn btn-action btn-edit me-1 btn-edit-group" title="Editar">
-                                        <i class="bi bi-pencil me-1"></i> Editar
-                                    </button>
-                                    <button class="btn btn-action btn-save d-none me-1 btn-save-group" title="Guardar">
-                                        <i class="bi bi-check me-1"></i> Guardar
-                                    </button>
-                                    <button class="btn btn-action btn-delete btn-delete-group" title="Eliminar">
-                                        <i class="bi bi-trash me-1"></i> Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>
@@ -73,4 +66,3 @@
         </div>
     </div>
 </div>
-

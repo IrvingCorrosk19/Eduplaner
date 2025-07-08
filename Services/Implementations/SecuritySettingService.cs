@@ -1,13 +1,21 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Services.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
+namespace SchoolManager.Services.Implementations
+{
 public class SecuritySettingService : ISecuritySettingService
 {
     private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-    public SecuritySettingService(SchoolDbContext context)
+        public SecuritySettingService(SchoolDbContext context, ICurrentUserService currentUserService)
     {
         _context = context;
+            _currentUserService = currentUserService;
     }
 
     public async Task<List<SecuritySetting>> GetAllAsync() =>
@@ -29,5 +37,6 @@ public class SecuritySettingService : ISecuritySettingService
     {
         _context.SecuritySettings.Update(setting);
         await _context.SaveChangesAsync();
+        }
     }
 }

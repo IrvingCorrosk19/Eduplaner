@@ -39,7 +39,7 @@ public class GradeLevelController : Controller
             }
 
             data.Id = Guid.NewGuid();
-            data.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+            data.CreatedAt = DateTime.UtcNow;
             var created = await _gradeLevelService.CreateAsync(data);
 
             return Json(new

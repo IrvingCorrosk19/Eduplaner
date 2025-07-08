@@ -11,7 +11,7 @@
         public Guid TeacherId { get; set; }       
         public Guid GradeLevelId { get; set; }
         public string Trimester { get; set; }    
-        public decimal Score { get; set; }       
+        public decimal? Score { get; set; }       
 
     }
 }

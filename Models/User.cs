@@ -23,13 +23,15 @@ public partial class User
 
     public DateTime? LastLogin { get; set; }
 
-    public DateTime? CreatedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
 
-    public string? LastName { get; set; }
+    public string LastName { get; set; } = null!;
 
     public string? DocumentId { get; set; }
 
     public DateTime? DateOfBirth { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
 
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 
@@ -44,6 +46,8 @@ public partial class User
     public virtual ICollection<DisciplineReport> DisciplineReportTeachers { get; set; } = new List<DisciplineReport>();
 
     public virtual School? School { get; set; }
+
+    public virtual School? SchoolNavigation { get; set; }
 
     public virtual ICollection<StudentActivityScore> StudentActivityScores { get; set; } = new List<StudentActivityScore>();
 

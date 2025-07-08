@@ -2,7 +2,9 @@
 
 <div class="card card-outline card-primary">
     <div class="card-header">
-        <h5 class="card-title fw-bold fs-3"><i class="bi bi-book text-primary me-2"></i>Gestión de Materias</h5>
+        <h5 class="card-title fw-bold fs-3">
+            <i class="bi bi-book text-primary me-2"></i>Gestión de Materias
+        </h5>
     </div>
     <div class="card-body">
         <div class="search-bar">
@@ -18,38 +20,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (!Model.Any())
+                    @foreach (var subject in Model ?? Enumerable.Empty<SchoolManager.Models.Subject>())
                     {
-                        <tr>
-                            <td colspan="3" class="text-center text-muted">No hay materias registradas.</td>
+                        <tr data-id="@subject.Id">
+                            <td class="align-middle text-center">
+                                <span class="subject-name-text">@subject.Name</span>
+                                <input type="text" class="form-control d-none subject-name-input" value="@subject.Name" />
+                            </td>
+                            <td class="align-middle text-center">
+                                <span class="subject-description-text">@subject.Description</span>
+                                <textarea class="form-control d-none subject-description-input">@subject.Description</textarea>
+                            </td>
+                            <td class="align-middle text-center">
+                                <button class="btn btn-action btn-edit me-1 btn-edit-subject" title="Editar">
+                                    <i class="bi bi-pencil me-1"></i> Editar
+                                </button>
+                                <button class="btn btn-action btn-save d-none me-1 btn-save-subject" title="Guardar">
+                                    <i class="bi bi-check me-1"></i> Guardar
+                                </button>
+                                <button class="btn btn-action btn-delete btn-delete-subject" title="Eliminar">
+                                    <i class="bi bi-trash me-1"></i> Eliminar
+                                </button>
+                            </td>
                         </tr>
-                    }
-                    else
-                    {
-                        foreach (var subject in Model)
-                        {
-                            <tr data-id="@subject.Id">
-                                <td class="align-middle text-center">
-                                    <span class="subject-name-text">@subject.Name</span>
-                                    <input type="text" class="form-control d-none subject-name-input" value="@subject.Name" />
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="subject-description-text">@subject.Description</span>
-                                    <textarea class="form-control d-none subject-description-input">@subject.Description</textarea>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <button class="btn btn-action btn-edit me-1 btn-edit-subject" title="Editar">
-                                        <i class="bi bi-pencil me-1"></i> Editar
-                                    </button>
-                                    <button class="btn btn-action btn-save d-none me-1 btn-save-subject" title="Guardar">
-                                        <i class="bi bi-check me-1"></i> Guardar
-                                    </button>
-                                    <button class="btn btn-action btn-delete btn-delete-subject" title="Eliminar">
-                                        <i class="bi bi-trash me-1"></i> Eliminar
-                                    </button>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>
@@ -73,4 +66,3 @@
         </div>
     </div>
 </div>
-

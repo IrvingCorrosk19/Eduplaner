@@ -5,16 +5,19 @@ using SchoolManager.Services.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace SchoolManager.Infrastructure.Services
 {
     public class SpecialtyService : ISpecialtyService
     {
         private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public SpecialtyService(SchoolDbContext context)
+        public SpecialtyService(SchoolDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<Specialty> GetOrCreateAsync(string name)
@@ -34,7 +37,7 @@ namespace SchoolManager.Infrastructure.Services
                     {
                         Id = Guid.NewGuid(),
                         Name = name,
-                        CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                        CreatedAt = DateTime.UtcNow
                     };
                     _context.Specialties.Add(specialty);
                     await _context.SaveChangesAsync();
@@ -68,7 +71,7 @@ namespace SchoolManager.Infrastructure.Services
                 throw new ArgumentException("La especialidad no es válida.");
 
             specialty.Id = Guid.NewGuid();
-            specialty.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+            specialty.CreatedAt = DateTime.UtcNow;
             specialty.Name = specialty.Name.Trim();
             specialty.Description = specialty.Description?.Trim();
 

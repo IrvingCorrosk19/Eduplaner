@@ -20,6 +20,7 @@ namespace SchoolManager.Migrations
                 .HasAnnotation("ProductVersion", "9.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pgcrypto");
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "uuid-ossp");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
@@ -31,11 +32,22 @@ namespace SchoolManager.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("uuid_generate_v4()");
 
+                    b.Property<Guid?>("ActivityTypeId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_date");
+
+                    b.Property<Guid?>("GradeLevelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_level_id");
 
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("uuid")
@@ -68,6 +80,9 @@ namespace SchoolManager.Migrations
                         .HasColumnType("character varying(5)")
                         .HasColumnName("trimester");
 
+                    b.Property<Guid?>("TrimesterId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -77,15 +92,204 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("activities_pkey");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex(new[] { "ActivityTypeId" }, "IX_activities_ActivityTypeId");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "TrimesterId" }, "IX_activities_TrimesterId");
 
-                    b.HasIndex("SubjectId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_activities_school_id");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex(new[] { "SubjectId" }, "IX_activities_subject_id");
+
+                    b.HasIndex(new[] { "GroupId" }, "idx_activities_group");
+
+                    b.HasIndex(new[] { "TeacherId" }, "idx_activities_teacher");
+
+                    b.HasIndex(new[] { "Trimester" }, "idx_activities_trimester");
+
+                    b.HasIndex(new[] { "Name", "Type", "SubjectId", "GroupId", "TeacherId", "Trimester" }, "idx_activities_unique_lookup");
 
                     b.ToTable("activities", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.ActivityAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
+                        .HasColumnName("file_name");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("mime_type");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("storage_path");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("Id")
+                        .HasName("activity_attachments_pkey");
+
+                    b.HasIndex(new[] { "ActivityId" }, "idx_attach_activity");
+
+                    b.ToTable("activity_attachments", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.ActivityType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("color");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("display_order");
+
+                    b.Property<string>("Icon")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("icon");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsGlobal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_global");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("SchoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("school_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("activity_types_pkey");
+
+                    b.HasIndex(new[] { "SchoolId" }, "IX_activity_types_school_id");
+
+                    b.HasIndex(new[] { "Name", "SchoolId" }, "activity_types_name_school_key")
+                        .IsUnique();
+
+                    b.ToTable("activity_types", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Area", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("display_order");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsGlobal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("is_global");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid?>("SchoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("school_id");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("area_pkey");
+
+                    b.HasIndex(new[] { "SchoolId" }, "IX_area_school_id");
+
+                    b.HasIndex(new[] { "Name", "SchoolId" }, "area_name_school_key")
+                        .IsUnique();
+
+                    b.ToTable("area", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Attendance", b =>
@@ -98,13 +302,21 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date")
                         .HasColumnName("date");
+
+                    b.Property<Guid?>("GradeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -123,9 +335,13 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("attendance_pkey");
 
-                    b.HasIndex("StudentId");
+                    b.HasIndex(new[] { "GradeId" }, "IX_attendance_grade_id");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex(new[] { "GroupId" }, "IX_attendance_group_id");
+
+                    b.HasIndex(new[] { "StudentId" }, "IX_attendance_student_id");
+
+                    b.HasIndex(new[] { "TeacherId" }, "IX_attendance_teacher_id");
 
                     b.ToTable("attendance", (string)null);
                 });
@@ -163,7 +379,7 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("Timestamp")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("timestamp")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -184,9 +400,9 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("audit_logs_pkey");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_audit_logs_school_id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex(new[] { "UserId" }, "IX_audit_logs_user_id");
 
                     b.ToTable("audit_logs", (string)null);
                 });
@@ -197,82 +413,105 @@ namespace SchoolManager.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id")
-                        .HasDefaultValueSql("uuid_generate_v4()");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
-                    b.Property<DateTime?>("CreatedAt")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date")
-                        .HasColumnName("date");
+                    b.Property<DateTime>("Date")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
 
+                    b.Property<Guid?>("GradeLevelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_level_id");
+
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<string>("ReportType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("report_type");
+
                     b.Property<string>("Status")
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasColumnName("status")
-                        .HasDefaultValueSql("'pendiente'::character varying");
+                        .HasColumnName("status");
 
                     b.Property<Guid?>("StudentId")
                         .HasColumnType("uuid")
                         .HasColumnName("student_id");
+
+                    b.Property<Guid?>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
 
                     b.Property<Guid?>("TeacherId")
                         .HasColumnType("uuid")
                         .HasColumnName("teacher_id");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
                     b.HasKey("Id")
                         .HasName("discipline_reports_pkey");
 
-                    b.HasIndex("StudentId");
+                    b.HasIndex(new[] { "GradeLevelId" }, "IX_discipline_reports_grade_level_id");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex(new[] { "GroupId" }, "IX_discipline_reports_group_id");
+
+                    b.HasIndex(new[] { "StudentId" }, "IX_discipline_reports_student_id");
+
+                    b.HasIndex(new[] { "SubjectId" }, "IX_discipline_reports_subject_id");
+
+                    b.HasIndex(new[] { "TeacherId" }, "IX_discipline_reports_teacher_id");
 
                     b.ToTable("discipline_reports", (string)null);
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.Grade", b =>
+            modelBuilder.Entity("SchoolManager.Models.GradeLevel", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id")
-                        .HasDefaultValueSql("uuid_generate_v4()");
-
-                    b.Property<Guid?>("ActivityId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("activity_id");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<Guid?>("StudentId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("student_id");
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
-                    b.Property<decimal?>("Value")
-                        .HasPrecision(3, 1)
-                        .HasColumnType("numeric(3,1)")
-                        .HasColumnName("value");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
 
                     b.HasKey("Id")
-                        .HasName("grades_pkey");
+                        .HasName("grade_levels_pkey");
 
-                    b.HasIndex("ActivityId");
+                    b.HasIndex(new[] { "Name" }, "grade_levels_name_key")
+                        .IsUnique();
 
-                    b.HasIndex("StudentId");
-
-                    b.ToTable("grades", (string)null);
+                    b.ToTable("grade_levels", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Group", b =>
@@ -285,9 +524,13 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
 
                     b.Property<string>("Grade")
                         .HasMaxLength(20)
@@ -307,7 +550,7 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("groups_pkey");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_groups_school_id");
 
                     b.ToTable("groups", (string)null);
                 });
@@ -321,17 +564,26 @@ namespace SchoolManager.Migrations
                         .HasDefaultValueSql("uuid_generate_v4()");
 
                     b.Property<string>("Address")
-                        .HasColumnType("text")
-                        .HasColumnName("address");
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("address")
+                        .HasDefaultValueSql("''::character varying");
+
+                    b.Property<Guid?>("AdminId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("admin_id");
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("LogoUrl")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("logo_url");
 
                     b.Property<string>("Name")
@@ -341,12 +593,18 @@ namespace SchoolManager.Migrations
                         .HasColumnName("name");
 
                     b.Property<string>("Phone")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
-                        .HasColumnName("phone");
+                        .HasColumnName("phone")
+                        .HasDefaultValueSql("''::character varying");
 
                     b.HasKey("Id")
                         .HasName("schools_pkey");
+
+                    b.HasIndex(new[] { "AdminId" }, "IX_schools_admin_id")
+                        .IsUnique();
 
                     b.ToTable("schools", (string)null);
                 });
@@ -361,7 +619,7 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -426,9 +684,42 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("security_settings_pkey");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_security_settings_school_id");
 
                     b.ToTable("security_settings", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Specialty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("specialties_pkey");
+
+                    b.HasIndex(new[] { "Name" }, "specialties_name_key")
+                        .IsUnique();
+
+                    b.ToTable("specialties", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Student", b =>
@@ -445,7 +736,7 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -476,11 +767,89 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("students_pkey");
 
-                    b.HasIndex("ParentId");
+                    b.HasIndex(new[] { "ParentId" }, "IX_students_parent_id");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_students_school_id");
 
                     b.ToTable("students", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.StudentActivityScore", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("ActivityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("activity_id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal?>("Score")
+                        .HasPrecision(2, 1)
+                        .HasColumnType("numeric(2,1)")
+                        .HasColumnName("score");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.HasKey("Id")
+                        .HasName("student_activity_scores_pkey");
+
+                    b.HasIndex(new[] { "ActivityId" }, "idx_scores_activity");
+
+                    b.HasIndex(new[] { "StudentId" }, "idx_scores_student");
+
+                    b.HasIndex(new[] { "StudentId", "ActivityId" }, "uq_scores")
+                        .IsUnique();
+
+                    b.ToTable("student_activity_scores", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.StudentAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("GradeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_id");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid>("StudentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("student_id");
+
+                    b.HasKey("Id")
+                        .HasName("student_assignments_pkey");
+
+                    b.HasIndex(new[] { "GradeId" }, "IX_student_assignments_grade_id");
+
+                    b.HasIndex(new[] { "GroupId" }, "IX_student_assignments_group_id");
+
+                    b.HasIndex(new[] { "StudentId" }, "IX_student_assignments_student_id");
+
+                    b.ToTable("student_assignments", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Subject", b =>
@@ -491,6 +860,9 @@ namespace SchoolManager.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("uuid_generate_v4()");
 
+                    b.Property<Guid?>("AreaId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Code")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
@@ -498,7 +870,7 @@ namespace SchoolManager.Migrations
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -525,12 +897,71 @@ namespace SchoolManager.Migrations
                     b.HasKey("Id")
                         .HasName("subjects_pkey");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "AreaId" }, "IX_subjects_AreaId");
 
-                    b.HasIndex(new[] { "Code" }, "subjects_code_key")
-                        .IsUnique();
+                    b.HasIndex(new[] { "SchoolId" }, "IX_subjects_school_id");
 
                     b.ToTable("subjects", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.SubjectAssignment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<Guid>("AreaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("area_id");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("GradeLevelId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_level_id");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
+
+                    b.Property<Guid?>("SchoolId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SpecialtyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("specialty_id");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
+
+                    b.HasKey("Id")
+                        .HasName("subject_assignments_pkey");
+
+                    b.HasIndex("SpecialtyId");
+
+                    b.HasIndex(new[] { "SchoolId" }, "IX_subject_assignments_SchoolId");
+
+                    b.HasIndex(new[] { "AreaId" }, "IX_subject_assignments_area_id");
+
+                    b.HasIndex(new[] { "GradeLevelId" }, "IX_subject_assignments_grade_level_id");
+
+                    b.HasIndex(new[] { "GroupId" }, "IX_subject_assignments_group_id");
+
+                    b.HasIndex(new[] { "SubjectId" }, "IX_subject_assignments_subject_id");
+
+                    b.ToTable("subject_assignments", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.TeacherAssignment", b =>
@@ -539,36 +970,96 @@ namespace SchoolManager.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id")
-                        .HasDefaultValueSql("uuid_generate_v4()");
+                        .HasDefaultValueSql("gen_random_uuid()");
 
                     b.Property<DateTime?>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-                    b.Property<Guid?>("GroupId")
+                    b.Property<Guid>("SubjectAssignmentId")
                         .HasColumnType("uuid")
-                        .HasColumnName("group_id");
+                        .HasColumnName("subject_assignment_id");
 
-                    b.Property<Guid?>("SubjectId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("subject_id");
-
-                    b.Property<Guid?>("TeacherId")
+                    b.Property<Guid>("TeacherId")
                         .HasColumnType("uuid")
                         .HasColumnName("teacher_id");
 
                     b.HasKey("Id")
                         .HasName("teacher_assignments_pkey");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex(new[] { "SubjectAssignmentId" }, "IX_teacher_assignments_subject_assignment_id");
 
-                    b.HasIndex("SubjectId");
-
-                    b.HasIndex("TeacherId");
+                    b.HasIndex(new[] { "TeacherId", "SubjectAssignmentId" }, "teacher_assignments_teacher_id_subject_assignment_id_key")
+                        .IsUnique();
 
                     b.ToTable("teacher_assignments", (string)null);
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Trimester", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<DateTime>("EndDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.Property<Guid?>("SchoolId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("school_id");
+
+                    b.Property<DateTime>("StartDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("trimester_pkey");
+
+                    b.HasIndex(new[] { "SchoolId" }, "IX_trimester_school_id");
+
+                    b.HasIndex(new[] { "Name", "SchoolId" }, "trimester_name_school_key")
+                        .IsUnique();
+
+                    b.ToTable("trimester", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.User", b =>
@@ -579,11 +1070,22 @@ namespace SchoolManager.Migrations
                         .HasColumnName("id")
                         .HasDefaultValueSql("uuid_generate_v4()");
 
-                    b.Property<DateTime?>("CreatedAt")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("date_of_birth")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DocumentId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("document_id");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -592,8 +1094,16 @@ namespace SchoolManager.Migrations
                         .HasColumnName("email");
 
                     b.Property<DateTime?>("LastLogin")
-                        .HasColumnType("timestamp without time zone")
+                        .HasColumnType("timestamp with time zone")
                         .HasColumnName("last_login");
+
+                    b.Property<string>("LastName")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("last_name")
+                        .HasDefaultValueSql("''::character varying");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -603,7 +1113,8 @@ namespace SchoolManager.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("password_hash");
 
                     b.Property<string>("Role")
@@ -629,10 +1140,16 @@ namespace SchoolManager.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("two_factor_enabled");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id")
                         .HasName("users_pkey");
 
-                    b.HasIndex("SchoolId");
+                    b.HasIndex(new[] { "SchoolId" }, "IX_users_school_id");
+
+                    b.HasIndex(new[] { "DocumentId" }, "users_document_id_key")
+                        .IsUnique();
 
                     b.HasIndex(new[] { "Email" }, "users_email_key")
                         .IsUnique();
@@ -640,38 +1157,66 @@ namespace SchoolManager.Migrations
                     b.ToTable("users", (string)null);
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.UserGroup", b =>
+            modelBuilder.Entity("UserGrade", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<Guid>("GradeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("grade_id");
+
+                    b.HasKey("UserId", "GradeId")
+                        .HasName("user_grades_pkey");
+
+                    b.HasIndex(new[] { "GradeId" }, "IX_user_grades_grade_id");
+
+                    b.ToTable("user_grades", (string)null);
+                });
+
+            modelBuilder.Entity("UserGroup", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<Guid>("GroupId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("group_id");
 
-                    b.HasKey("UserId", "GroupId");
+                    b.HasKey("UserId", "GroupId")
+                        .HasName("user_groups_pkey");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex(new[] { "GroupId" }, "IX_user_groups_group_id");
 
                     b.ToTable("user_groups", (string)null);
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.UserSubject", b =>
+            modelBuilder.Entity("UserSubject", b =>
                 {
                     b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
 
                     b.Property<Guid>("SubjectId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("subject_id");
 
-                    b.HasKey("UserId", "SubjectId");
+                    b.HasKey("UserId", "SubjectId")
+                        .HasName("user_subjects_pkey");
 
-                    b.HasIndex("SubjectId");
+                    b.HasIndex(new[] { "SubjectId" }, "IX_user_subjects_subject_id");
 
                     b.ToTable("user_subjects", (string)null);
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Activity", b =>
                 {
+                    b.HasOne("SchoolManager.Models.ActivityType", "ActivityType")
+                        .WithMany("Activities")
+                        .HasForeignKey("ActivityTypeId");
+
                     b.HasOne("SchoolManager.Models.Group", "Group")
                         .WithMany("Activities")
                         .HasForeignKey("GroupId")
@@ -693,6 +1238,12 @@ namespace SchoolManager.Migrations
                         .HasForeignKey("TeacherId")
                         .HasConstraintName("activities_teacher_id_fkey");
 
+                    b.HasOne("SchoolManager.Models.Trimester", "TrimesterNavigation")
+                        .WithMany("Activities")
+                        .HasForeignKey("TrimesterId");
+
+                    b.Navigation("ActivityType");
+
                     b.Navigation("Group");
 
                     b.Navigation("School");
@@ -700,19 +1251,69 @@ namespace SchoolManager.Migrations
                     b.Navigation("Subject");
 
                     b.Navigation("Teacher");
+
+                    b.Navigation("TrimesterNavigation");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.ActivityAttachment", b =>
+                {
+                    b.HasOne("SchoolManager.Models.Activity", "Activity")
+                        .WithMany("ActivityAttachments")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("activity_attachments_activity_id_fkey");
+
+                    b.Navigation("Activity");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.ActivityType", b =>
+                {
+                    b.HasOne("SchoolManager.Models.School", "School")
+                        .WithMany("ActivityTypes")
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("activity_types_school_id_fkey");
+
+                    b.Navigation("School");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Area", b =>
+                {
+                    b.HasOne("SchoolManager.Models.School", "School")
+                        .WithMany("Areas")
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("area_school_id_fkey");
+
+                    b.Navigation("School");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Attendance", b =>
                 {
-                    b.HasOne("SchoolManager.Models.Student", "Student")
+                    b.HasOne("SchoolManager.Models.GradeLevel", "Grade")
                         .WithMany("Attendances")
+                        .HasForeignKey("GradeId")
+                        .HasConstraintName("attendance_grade_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.Group", "Group")
+                        .WithMany("Attendances")
+                        .HasForeignKey("GroupId")
+                        .HasConstraintName("attendance_group_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.User", "Student")
+                        .WithMany("AttendanceStudents")
                         .HasForeignKey("StudentId")
                         .HasConstraintName("attendance_student_id_fkey");
 
                     b.HasOne("SchoolManager.Models.User", "Teacher")
-                        .WithMany("Attendances")
+                        .WithMany("AttendanceTeachers")
                         .HasForeignKey("TeacherId")
                         .HasConstraintName("attendance_teacher_id_fkey");
+
+                    b.Navigation("Grade");
+
+                    b.Navigation("Group");
 
                     b.Navigation("Student");
 
@@ -738,36 +1339,40 @@ namespace SchoolManager.Migrations
 
             modelBuilder.Entity("SchoolManager.Models.DisciplineReport", b =>
                 {
-                    b.HasOne("SchoolManager.Models.Student", "Student")
+                    b.HasOne("SchoolManager.Models.GradeLevel", "GradeLevel")
                         .WithMany("DisciplineReports")
+                        .HasForeignKey("GradeLevelId")
+                        .HasConstraintName("discipline_reports_grade_level_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.Group", "Group")
+                        .WithMany("DisciplineReports")
+                        .HasForeignKey("GroupId")
+                        .HasConstraintName("discipline_reports_group_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.User", "Student")
+                        .WithMany("DisciplineReportStudents")
                         .HasForeignKey("StudentId")
                         .HasConstraintName("discipline_reports_student_id_fkey");
 
-                    b.HasOne("SchoolManager.Models.User", "Teacher")
+                    b.HasOne("SchoolManager.Models.Subject", "Subject")
                         .WithMany("DisciplineReports")
+                        .HasForeignKey("SubjectId")
+                        .HasConstraintName("discipline_reports_subject_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.User", "Teacher")
+                        .WithMany("DisciplineReportTeachers")
                         .HasForeignKey("TeacherId")
                         .HasConstraintName("discipline_reports_teacher_id_fkey");
 
+                    b.Navigation("GradeLevel");
+
+                    b.Navigation("Group");
+
                     b.Navigation("Student");
+
+                    b.Navigation("Subject");
 
                     b.Navigation("Teacher");
-                });
-
-            modelBuilder.Entity("SchoolManager.Models.Grade", b =>
-                {
-                    b.HasOne("SchoolManager.Models.Activity", "Activity")
-                        .WithMany("Grades")
-                        .HasForeignKey("ActivityId")
-                        .HasConstraintName("grades_activity_id_fkey");
-
-                    b.HasOne("SchoolManager.Models.Student", "Student")
-                        .WithMany("Grades")
-                        .HasForeignKey("StudentId")
-                        .HasConstraintName("grades_student_id_fkey");
-
-                    b.Navigation("Activity");
-
-                    b.Navigation("Student");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Group", b =>
@@ -779,6 +1384,16 @@ namespace SchoolManager.Migrations
                         .HasConstraintName("groups_school_id_fkey");
 
                     b.Navigation("School");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.School", b =>
+                {
+                    b.HasOne("SchoolManager.Models.User", "Admin")
+                        .WithOne("School")
+                        .HasForeignKey("SchoolManager.Models.School", "AdminId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Admin");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.SecuritySetting", b =>
@@ -810,107 +1425,255 @@ namespace SchoolManager.Migrations
                     b.Navigation("School");
                 });
 
+            modelBuilder.Entity("SchoolManager.Models.StudentActivityScore", b =>
+                {
+                    b.HasOne("SchoolManager.Models.Activity", "Activity")
+                        .WithMany("StudentActivityScores")
+                        .HasForeignKey("ActivityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("student_activity_scores_activity_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.User", "Student")
+                        .WithMany("StudentActivityScores")
+                        .HasForeignKey("StudentId")
+                        .IsRequired()
+                        .HasConstraintName("student_activity_scores_student_id_fkey");
+
+                    b.Navigation("Activity");
+
+                    b.Navigation("Student");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.StudentAssignment", b =>
+                {
+                    b.HasOne("SchoolManager.Models.GradeLevel", "Grade")
+                        .WithMany("StudentAssignments")
+                        .HasForeignKey("GradeId")
+                        .IsRequired()
+                        .HasConstraintName("fk_grade");
+
+                    b.HasOne("SchoolManager.Models.Group", "Group")
+                        .WithMany("StudentAssignments")
+                        .HasForeignKey("GroupId")
+                        .IsRequired()
+                        .HasConstraintName("fk_group");
+
+                    b.HasOne("SchoolManager.Models.User", "Student")
+                        .WithMany("StudentAssignments")
+                        .HasForeignKey("StudentId")
+                        .IsRequired()
+                        .HasConstraintName("fk_student");
+
+                    b.Navigation("Grade");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("Student");
+                });
+
             modelBuilder.Entity("SchoolManager.Models.Subject", b =>
                 {
+                    b.HasOne("SchoolManager.Models.Area", "Area")
+                        .WithMany("Subjects")
+                        .HasForeignKey("AreaId");
+
                     b.HasOne("SchoolManager.Models.School", "School")
                         .WithMany("Subjects")
                         .HasForeignKey("SchoolId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .HasConstraintName("subjects_school_id_fkey");
 
+                    b.Navigation("Area");
+
                     b.Navigation("School");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.SubjectAssignment", b =>
+                {
+                    b.HasOne("SchoolManager.Models.Area", "Area")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("AreaId")
+                        .IsRequired()
+                        .HasConstraintName("subject_assignments_area_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.GradeLevel", "GradeLevel")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("GradeLevelId")
+                        .IsRequired()
+                        .HasConstraintName("subject_assignments_grade_level_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.Group", "Group")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("GroupId")
+                        .IsRequired()
+                        .HasConstraintName("subject_assignments_group_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.School", "School")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("SchoolId");
+
+                    b.HasOne("SchoolManager.Models.Specialty", "Specialty")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("SpecialtyId")
+                        .IsRequired()
+                        .HasConstraintName("subject_assignments_specialty_id_fkey");
+
+                    b.HasOne("SchoolManager.Models.Subject", "Subject")
+                        .WithMany("SubjectAssignments")
+                        .HasForeignKey("SubjectId")
+                        .IsRequired()
+                        .HasConstraintName("subject_assignments_subject_id_fkey");
+
+                    b.Navigation("Area");
+
+                    b.Navigation("GradeLevel");
+
+                    b.Navigation("Group");
+
+                    b.Navigation("School");
+
+                    b.Navigation("Specialty");
+
+                    b.Navigation("Subject");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.TeacherAssignment", b =>
                 {
-                    b.HasOne("SchoolManager.Models.Group", "Group")
+                    b.HasOne("SchoolManager.Models.SubjectAssignment", "SubjectAssignment")
                         .WithMany("TeacherAssignments")
-                        .HasForeignKey("GroupId")
-                        .HasConstraintName("teacher_assignments_group_id_fkey");
-
-                    b.HasOne("SchoolManager.Models.Subject", "Subject")
-                        .WithMany("TeacherAssignments")
-                        .HasForeignKey("SubjectId")
-                        .HasConstraintName("teacher_assignments_subject_id_fkey");
+                        .HasForeignKey("SubjectAssignmentId")
+                        .IsRequired()
+                        .HasConstraintName("teacher_assignments_subject_assignment_id_fkey");
 
                     b.HasOne("SchoolManager.Models.User", "Teacher")
                         .WithMany("TeacherAssignments")
                         .HasForeignKey("TeacherId")
+                        .IsRequired()
                         .HasConstraintName("teacher_assignments_teacher_id_fkey");
 
-                    b.Navigation("Group");
-
-                    b.Navigation("Subject");
+                    b.Navigation("SubjectAssignment");
 
                     b.Navigation("Teacher");
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.User", b =>
+            modelBuilder.Entity("SchoolManager.Models.Trimester", b =>
                 {
                     b.HasOne("SchoolManager.Models.School", "School")
-                        .WithMany("Users")
+                        .WithMany("Trimesters")
                         .HasForeignKey("SchoolId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .HasConstraintName("users_school_id_fkey");
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("trimester_school_id_fkey");
 
                     b.Navigation("School");
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.UserGroup", b =>
+            modelBuilder.Entity("SchoolManager.Models.User", b =>
                 {
-                    b.HasOne("SchoolManager.Models.Group", "Group")
-                        .WithMany("UserGroups")
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("SchoolManager.Models.School", "SchoolNavigation")
+                        .WithMany("Users")
+                        .HasForeignKey("SchoolId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("users_school_id_fkey");
 
-                    b.HasOne("SchoolManager.Models.User", "User")
-                        .WithMany("UserGroups")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
-                    b.Navigation("User");
+                    b.Navigation("SchoolNavigation");
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.UserSubject", b =>
+            modelBuilder.Entity("UserGrade", b =>
                 {
-                    b.HasOne("SchoolManager.Models.Subject", "Subject")
-                        .WithMany("UserSubjects")
-                        .HasForeignKey("SubjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("SchoolManager.Models.GradeLevel", null)
+                        .WithMany()
+                        .HasForeignKey("GradeId")
+                        .IsRequired()
+                        .HasConstraintName("fk_user_grades_grade");
 
-                    b.HasOne("SchoolManager.Models.User", "User")
-                        .WithMany("UserSubjects")
+                    b.HasOne("SchoolManager.Models.User", null)
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("fk_user_grades_user");
+                });
 
-                    b.Navigation("Subject");
+            modelBuilder.Entity("UserGroup", b =>
+                {
+                    b.HasOne("SchoolManager.Models.Group", null)
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .IsRequired()
+                        .HasConstraintName("fk_user_groups_group");
 
-                    b.Navigation("User");
+                    b.HasOne("SchoolManager.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("fk_user_groups_user");
+                });
+
+            modelBuilder.Entity("UserSubject", b =>
+                {
+                    b.HasOne("SchoolManager.Models.Subject", null)
+                        .WithMany()
+                        .HasForeignKey("SubjectId")
+                        .IsRequired()
+                        .HasConstraintName("fk_user_subjects_subject");
+
+                    b.HasOne("SchoolManager.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("fk_user_subjects_user");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Activity", b =>
                 {
-                    b.Navigation("Grades");
+                    b.Navigation("ActivityAttachments");
+
+                    b.Navigation("StudentActivityScores");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.ActivityType", b =>
+                {
+                    b.Navigation("Activities");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Area", b =>
+                {
+                    b.Navigation("SubjectAssignments");
+
+                    b.Navigation("Subjects");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.GradeLevel", b =>
+                {
+                    b.Navigation("Attendances");
+
+                    b.Navigation("DisciplineReports");
+
+                    b.Navigation("StudentAssignments");
+
+                    b.Navigation("SubjectAssignments");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Group", b =>
                 {
                     b.Navigation("Activities");
 
-                    b.Navigation("TeacherAssignments");
+                    b.Navigation("Attendances");
 
-                    b.Navigation("UserGroups");
+                    b.Navigation("DisciplineReports");
+
+                    b.Navigation("StudentAssignments");
+
+                    b.Navigation("SubjectAssignments");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.School", b =>
                 {
                     b.Navigation("Activities");
+
+                    b.Navigation("ActivityTypes");
+
+                    b.Navigation("Areas");
 
                     b.Navigation("AuditLogs");
 
@@ -920,46 +1683,62 @@ namespace SchoolManager.Migrations
 
                     b.Navigation("Students");
 
+                    b.Navigation("SubjectAssignments");
+
                     b.Navigation("Subjects");
+
+                    b.Navigation("Trimesters");
 
                     b.Navigation("Users");
                 });
 
-            modelBuilder.Entity("SchoolManager.Models.Student", b =>
+            modelBuilder.Entity("SchoolManager.Models.Specialty", b =>
                 {
-                    b.Navigation("Attendances");
-
-                    b.Navigation("DisciplineReports");
-
-                    b.Navigation("Grades");
+                    b.Navigation("SubjectAssignments");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.Subject", b =>
                 {
                     b.Navigation("Activities");
 
-                    b.Navigation("TeacherAssignments");
+                    b.Navigation("DisciplineReports");
 
-                    b.Navigation("UserSubjects");
+                    b.Navigation("SubjectAssignments");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.SubjectAssignment", b =>
+                {
+                    b.Navigation("TeacherAssignments");
+                });
+
+            modelBuilder.Entity("SchoolManager.Models.Trimester", b =>
+                {
+                    b.Navigation("Activities");
                 });
 
             modelBuilder.Entity("SchoolManager.Models.User", b =>
                 {
                     b.Navigation("Activities");
 
-                    b.Navigation("Attendances");
+                    b.Navigation("AttendanceStudents");
+
+                    b.Navigation("AttendanceTeachers");
 
                     b.Navigation("AuditLogs");
 
-                    b.Navigation("DisciplineReports");
+                    b.Navigation("DisciplineReportStudents");
+
+                    b.Navigation("DisciplineReportTeachers");
+
+                    b.Navigation("School");
+
+                    b.Navigation("StudentActivityScores");
+
+                    b.Navigation("StudentAssignments");
 
                     b.Navigation("Students");
 
                     b.Navigation("TeacherAssignments");
-
-                    b.Navigation("UserGroups");
-
-                    b.Navigation("UserSubjects");
                 });
 #pragma warning restore 612, 618
         }

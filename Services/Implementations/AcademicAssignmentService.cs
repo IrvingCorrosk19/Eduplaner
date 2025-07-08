@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using SchoolManager.Application.Interfaces;
 using SchoolManager.Models;
+using SchoolManager.Services.Interfaces;
 using SchoolManager.ViewModels;
 
 namespace SchoolManager.Infrastructure.Services
@@ -8,10 +10,11 @@ namespace SchoolManager.Infrastructure.Services
     public class AcademicAssignmentService : IAcademicAssignmentService
     {
         private readonly SchoolDbContext _context;
-
-        public AcademicAssignmentService(SchoolDbContext context)
+        private readonly ICurrentUserService _currentUserService;
+        public AcademicAssignmentService(SchoolDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<bool> AssignTeacherAsync(Guid teacherId, Guid subjectAssignmentId)
@@ -33,7 +36,7 @@ namespace SchoolManager.Infrastructure.Services
                     Id = Guid.NewGuid(),
                     TeacherId = teacherId,
                     SubjectAssignmentId = subjectAssignmentId,
-                    CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+                    CreatedAt = DateTime.UtcNow
                 };
 
                 await _context.TeacherAssignments.AddAsync(assignment);
@@ -75,35 +78,46 @@ namespace SchoolManager.Infrastructure.Services
             return groupedAssignments;
         }
 
-        public async Task<bool> ExisteAsignacionAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId)
+        public async Task<bool> ExisteAsignacionAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId, Guid? schoolId)
         {
             return await _context.SubjectAssignments.AnyAsync(sa =>
                 sa.SpecialtyId == specialtyId &&
                 sa.AreaId == areaId &&
                 sa.SubjectId == subjectId &&
                 sa.GradeLevelId == gradeLevelId &&
-                sa.GroupId == groupId
+                sa.GroupId == groupId &&
+                sa.SchoolId == schoolId
             );
         }
 
-        public async Task CreateAsignacionAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId)
+        public async Task CreateAsignacionAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId, Guid? schoolId)
         {
-            var asignacion = new SubjectAssignment
+            try
             {
-                Id = Guid.NewGuid(),
-                SpecialtyId = specialtyId,
-                AreaId = areaId,
-                SubjectId = subjectId,
-                GradeLevelId = gradeLevelId,
-                GroupId = groupId,
-                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
-            };
+                var asignacion = new SubjectAssignment
+                {
+                    Id = Guid.NewGuid(),
+                    SpecialtyId = specialtyId,
+                    SchoolId = schoolId,
+                    AreaId = areaId,
+                    SubjectId = subjectId,
+                    GradeLevelId = gradeLevelId,
+                    GroupId = groupId,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            _context.SubjectAssignments.Add(asignacion);
-            await _context.SaveChangesAsync();
+                _context.SubjectAssignments.Add(asignacion);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == "23505")
+            {
+                var constraint = ((PostgresException)ex.InnerException).ConstraintName;
+                throw new Exception($"Violación de llave única. Restricción duplicada: {constraint}", ex);
+            }
         }
 
-        public async Task<Guid?> GetSubjectAssignmentIdAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId)
+
+        public async Task<Guid?> GetSubjectAssignmentIdAsync(Guid specialtyId, Guid areaId, Guid subjectId, Guid gradeLevelId, Guid groupId, Guid? schoolId)
         {
             return await _context.SubjectAssignments
                 .Where(sa =>
@@ -111,7 +125,8 @@ namespace SchoolManager.Infrastructure.Services
                     sa.AreaId == areaId &&
                     sa.SubjectId == subjectId &&
                     sa.GradeLevelId == gradeLevelId &&
-                    sa.GroupId == groupId)
+                    sa.GroupId == groupId &&
+                    sa.SchoolId == schoolId)
                 .Select(sa => (Guid?)sa.Id)
                 .FirstOrDefaultAsync();
         }

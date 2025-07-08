@@ -11,10 +11,12 @@ namespace SchoolManager.Services
     public class SubjectAssignmentService : ISubjectAssignmentService
     {
         private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public SubjectAssignmentService(SchoolDbContext context)
+        public SubjectAssignmentService(SchoolDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<IEnumerable<GradeLevel>> GetGradeLevelsBySubjectIdAsync(Guid subjectId, Guid specialtyId, Guid areaId)
@@ -83,7 +85,11 @@ namespace SchoolManager.Services
 
         public async Task<IEnumerable<SubjectAssignment>> GetAllSubjectAssignments()
         {
-            return await _context.SubjectAssignments
+
+             var usercurrent =await _currentUserService.GetCurrentUserAsync();
+
+
+            return await _context.SubjectAssignments.Where(x=>x.SchoolId == usercurrent.SchoolId)
                 .Include(sa => sa.Specialty)
                 .Include(sa => sa.Area)
                 .Include(sa => sa.Subject)

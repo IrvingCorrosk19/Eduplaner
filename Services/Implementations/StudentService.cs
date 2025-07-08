@@ -6,16 +6,19 @@ using Microsoft.EntityFrameworkCore;
 using SchoolManager.Models;
 using SchoolManager.Dtos;
 using SchoolManager.Interfaces;
+using SchoolManager.Services.Interfaces;
 
 namespace SchoolManager.Services
 {
     public class StudentService : IStudentService
     {
         private readonly SchoolDbContext _context;
+        private readonly ICurrentUserService _currentUserService;
 
-        public StudentService(SchoolDbContext context)
+        public StudentService(SchoolDbContext context, ICurrentUserService currentUserService)
         {
             _context = context;
+            _currentUserService = currentUserService;
         }
 
         public async Task<List<Student>> GetAllAsync() =>

@@ -6,7 +6,7 @@
         Admin,
         Director,
         Teacher,
-        Parent,
+       // Parent,
         Student,
         Estudiante
     }
